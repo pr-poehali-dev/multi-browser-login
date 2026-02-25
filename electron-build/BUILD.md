@@ -15,18 +15,24 @@
 npx vite build --config electron-build/vite.electron.config.ts
 ```
 
-### 3. Установи зависимости Electron
+### 3. Сгенерируй иконку приложения
 ```bash
 cd electron-build
+chmod +x make-icon.sh
+./make-icon.sh
+```
+
+### 4. Установи зависимости Electron
+```bash
 npm install
 ```
 
-### 4. Собери .dmg
+### 5. Собери .dmg
 ```bash
 npm run dist
 ```
 
-### 5. Готово
+### 6. Готово
 Файл появится в `electron-build/release/BrowserCtrl-1.0.0.dmg`
 
 Открой .dmg, перетащи приложение в папку Applications — и всё готово.
