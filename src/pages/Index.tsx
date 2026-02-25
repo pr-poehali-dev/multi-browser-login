@@ -3,6 +3,244 @@ import Icon from "@/components/ui/icon";
 
 type Section = "dashboard" | "browsers" | "accounts" | "scenarios" | "logs" | "settings";
 
+type StepType = "navigate" | "click" | "type" | "wait" | "condition" | "screenshot" | "scroll" | "extract";
+
+interface ScenarioStep {
+  id: number;
+  type: StepType;
+  label: string;
+  params: Record<string, string>;
+}
+
+const STEP_TYPES: { type: StepType; icon: string; label: string; color: string; fields: { key: string; label: string; placeholder: string }[] }[] = [
+  { type: "navigate", icon: "Globe", label: "Открыть страницу", color: "text-blue-400 bg-blue-500/10 border-blue-500/20",
+    fields: [{ key: "url", label: "URL", placeholder: "https://example.com" }] },
+  { type: "click", icon: "MousePointer2", label: "Кликнуть", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+    fields: [{ key: "selector", label: "CSS-селектор", placeholder: "#submit-btn" }, { key: "timeout", label: "Таймаут (мс)", placeholder: "3000" }] },
+  { type: "type", icon: "Keyboard", label: "Ввести текст", color: "text-violet-400 bg-violet-500/10 border-violet-500/20",
+    fields: [{ key: "selector", label: "CSS-селектор", placeholder: "input[name='email']" }, { key: "value", label: "Текст", placeholder: "user@example.com" }] },
+  { type: "wait", icon: "Timer", label: "Пауза", color: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+    fields: [{ key: "ms", label: "Задержка (мс)", placeholder: "1500" }] },
+  { type: "condition", icon: "GitBranch", label: "Условие", color: "text-orange-400 bg-orange-500/10 border-orange-500/20",
+    fields: [{ key: "selector", label: "CSS-селектор", placeholder: ".error-message" }, { key: "action", label: "Действие если найден", placeholder: "stop / retry / skip" }] },
+  { type: "extract", icon: "Database", label: "Извлечь данные", color: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
+    fields: [{ key: "selector", label: "CSS-селектор", placeholder: "table.prices td" }, { key: "attr", label: "Атрибут (или text)", placeholder: "text" }, { key: "varName", label: "Переменная", placeholder: "price" }] },
+  { type: "scroll", icon: "ArrowDownUp", label: "Прокрутить", color: "text-slate-400 bg-slate-500/10 border-slate-500/20",
+    fields: [{ key: "direction", label: "Направление", placeholder: "down / up / to-element" }, { key: "selector", label: "Элемент (опц.)", placeholder: "#footer" }] },
+  { type: "screenshot", icon: "Camera", label: "Скриншот", color: "text-pink-400 bg-pink-500/10 border-pink-500/20",
+    fields: [{ key: "name", label: "Имя файла", placeholder: "result.png" }] },
+];
+
+const defaultSteps: ScenarioStep[] = [
+  { id: 1, type: "navigate", label: "Открыть страницу", params: { url: "https://example.com" } },
+  { id: 2, type: "click", label: "Кликнуть", params: { selector: "#login-btn", timeout: "3000" } },
+  { id: 3, type: "type", label: "Ввести текст", params: { selector: "input[name='email']", value: "" } },
+  { id: 4, type: "wait", label: "Пауза", params: { ms: "1500" } },
+];
+
+function ScenarioModal({ onClose, scenarioName }: { onClose: () => void; scenarioName?: string }) {
+  const [name, setName] = useState(scenarioName ?? "Новый сценарий");
+  const [steps, setSteps] = useState<ScenarioStep[]>(scenarioName ? defaultSteps : []);
+  const [selectedStep, setSelectedStep] = useState<number | null>(null);
+  const [showPicker, setShowPicker] = useState(false);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
+
+  const addStep = (type: StepType) => {
+    const def = STEP_TYPES.find(t => t.type === type)!;
+    const params: Record<string, string> = {};
+    def.fields.forEach(f => { params[f.key] = ""; });
+    const newStep: ScenarioStep = { id: Date.now(), type, label: def.label, params };
+    setSteps(prev => [...prev, newStep]);
+    setSelectedStep(newStep.id);
+    setShowPicker(false);
+  };
+
+  const removeStep = (id: number) => {
+    setSteps(prev => prev.filter(s => s.id !== id));
+    if (selectedStep === id) setSelectedStep(null);
+  };
+
+  const updateParam = (id: number, key: string, value: string) => {
+    setSteps(prev => prev.map(s => s.id === id ? { ...s, params: { ...s.params, [key]: value } } : s));
+  };
+
+  const moveStep = (from: number, to: number) => {
+    const arr = [...steps];
+    const [item] = arr.splice(from, 1);
+    arr.splice(to, 0, item);
+    setSteps(arr);
+  };
+
+  const active = steps.find(s => s.id === selectedStep);
+  const activeDef = active ? STEP_TYPES.find(t => t.type === active.type) : null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
+      <div className="w-[860px] max-h-[90vh] bg-[#0e1520] border border-[#1e2837] rounded-xl flex flex-col shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center gap-4 px-6 py-4 border-b border-[#1e2837] flex-shrink-0">
+          <div className="w-8 h-8 rounded bg-blue-600/20 border border-blue-600/30 flex items-center justify-center">
+            <Icon name="Workflow" size={15} className="text-blue-400" />
+          </div>
+          <input
+            value={name}
+            onChange={e => setName(e.target.value)}
+            className="flex-1 bg-transparent text-[15px] font-semibold text-slate-100 outline-none placeholder-slate-600 border-b border-transparent focus:border-blue-500/40 transition-colors pb-0.5"
+          />
+          <div className="flex items-center gap-2">
+            <button className="px-4 py-1.5 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 transition-colors font-medium">
+              Сохранить
+            </button>
+            <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1a2333] text-slate-500 hover:text-slate-300 transition-colors">
+              <Icon name="X" size={15} />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex flex-1 overflow-hidden min-h-0">
+          {/* Steps list */}
+          <div className="w-64 border-r border-[#1e2837] flex flex-col flex-shrink-0">
+            <div className="px-4 py-3 text-[11px] font-medium text-slate-500 uppercase tracking-widest border-b border-[#1e2837] flex items-center justify-between">
+              <span>Шаги ({steps.length})</span>
+            </div>
+            <div className="flex-1 overflow-auto p-2 space-y-1">
+              {steps.map((step, idx) => {
+                const def = STEP_TYPES.find(t => t.type === step.type)!;
+                return (
+                  <div
+                    key={step.id}
+                    draggable
+                    onDragStart={() => setDragIdx(idx)}
+                    onDragOver={e => { e.preventDefault(); setOverIdx(idx); }}
+                    onDrop={() => { if (dragIdx !== null && dragIdx !== idx) moveStep(dragIdx, idx); setDragIdx(null); setOverIdx(null); }}
+                    onDragEnd={() => { setDragIdx(null); setOverIdx(null); }}
+                    onClick={() => setSelectedStep(step.id)}
+                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded cursor-pointer transition-all select-none ${
+                      selectedStep === step.id
+                        ? "bg-[#1a2c42] border border-blue-500/30"
+                        : overIdx === idx
+                        ? "bg-[#1a2333] border border-dashed border-[#2a3a50]"
+                        : "hover:bg-[#141d2a] border border-transparent"
+                    }`}
+                  >
+                    <div className="text-[10px] font-mono text-slate-600 w-4 text-right flex-shrink-0">{idx + 1}</div>
+                    <div className={`w-6 h-6 rounded flex items-center justify-center border flex-shrink-0 ${def.color}`}>
+                      <Icon name={def.icon} size={11} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[12px] text-slate-300 truncate">{def.label}</div>
+                      {Object.values(step.params)[0] && (
+                        <div className="text-[10px] text-slate-600 truncate font-mono">{Object.values(step.params)[0]}</div>
+                      )}
+                    </div>
+                    <button
+                      onClick={e => { e.stopPropagation(); removeStep(step.id); }}
+                      className="w-4 h-4 flex items-center justify-center rounded text-slate-600 hover:text-red-400 transition-colors flex-shrink-0"
+                    >
+                      <Icon name="X" size={10} />
+                    </button>
+                  </div>
+                );
+              })}
+
+              {steps.length === 0 && (
+                <div className="text-center py-8 text-[12px] text-slate-600">
+                  <Icon name="Workflow" size={24} className="mx-auto mb-2 opacity-30" />
+                  Нет шагов
+                </div>
+              )}
+            </div>
+
+            {/* Add step */}
+            <div className="p-2 border-t border-[#1e2837] flex-shrink-0 relative">
+              <button
+                onClick={() => setShowPicker(p => !p)}
+                className="w-full flex items-center justify-center gap-2 py-2 rounded border border-dashed border-[#2a3a50] text-[12px] text-slate-500 hover:text-slate-300 hover:border-blue-500/40 transition-colors"
+              >
+                <Icon name="Plus" size={12} />Добавить шаг
+              </button>
+
+              {showPicker && (
+                <div className="absolute bottom-full left-2 right-2 mb-1 bg-[#141920] border border-[#1e2837] rounded-lg overflow-hidden shadow-xl z-10">
+                  {STEP_TYPES.map(t => (
+                    <button
+                      key={t.type}
+                      onClick={() => addStep(t.type)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-[#1a2333] transition-colors text-left"
+                    >
+                      <div className={`w-6 h-6 rounded flex items-center justify-center border flex-shrink-0 ${t.color}`}>
+                        <Icon name={t.icon} size={11} />
+                      </div>
+                      <span className="text-[12px] text-slate-300">{t.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Step params */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {active && activeDef ? (
+              <>
+                <div className="px-6 py-3 border-b border-[#1e2837] flex items-center gap-3 flex-shrink-0">
+                  <div className={`w-7 h-7 rounded flex items-center justify-center border ${activeDef.color}`}>
+                    <Icon name={activeDef.icon} size={13} />
+                  </div>
+                  <div>
+                    <div className="text-[13px] font-medium text-slate-200">{activeDef.label}</div>
+                    <div className="text-[10px] text-slate-600 font-mono">шаг {steps.findIndex(s => s.id === active.id) + 1} из {steps.length}</div>
+                  </div>
+                </div>
+                <div className="flex-1 overflow-auto p-6 space-y-4">
+                  {activeDef.fields.map(field => (
+                    <div key={field.key}>
+                      <label className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-2 block">{field.label}</label>
+                      <input
+                        value={active.params[field.key] ?? ""}
+                        onChange={e => updateParam(active.id, field.key, e.target.value)}
+                        placeholder={field.placeholder}
+                        className="w-full bg-[#0c1017] border border-[#1e2837] rounded-lg px-4 py-2.5 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-700"
+                      />
+                    </div>
+                  ))}
+
+                  <div className="mt-6 pt-5 border-t border-[#1a2333]">
+                    <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-3">Управление шагом</div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { const i = steps.findIndex(s => s.id === active.id); if (i > 0) moveStep(i, i - 1); }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#141920] border border-[#1e2837] rounded text-[12px] text-slate-400 hover:text-slate-200 transition-colors"
+                      ><Icon name="ArrowUp" size={12} />Вверх</button>
+                      <button
+                        onClick={() => { const i = steps.findIndex(s => s.id === active.id); if (i < steps.length - 1) moveStep(i, i + 1); }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#141920] border border-[#1e2837] rounded text-[12px] text-slate-400 hover:text-slate-200 transition-colors"
+                      ><Icon name="ArrowDown" size={12} />Вниз</button>
+                      <button
+                        onClick={() => removeStep(active.id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded text-[12px] text-red-400 hover:bg-red-500/20 transition-colors ml-auto"
+                      ><Icon name="Trash2" size={12} />Удалить шаг</button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                <div className="w-14 h-14 rounded-xl bg-[#141920] border border-[#1e2837] flex items-center justify-center mb-4">
+                  <Icon name="MousePointer2" size={22} className="text-slate-600" />
+                </div>
+                <div className="text-[13px] text-slate-500 mb-1">Выберите шаг для редактирования</div>
+                <div className="text-[11px] text-slate-600">или добавьте новый шаг слева</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const mockBrowsers = [
   { id: 1, name: "Chrome #001", status: "running", proxy: "185.22.11.4:8080", account: "user@mail.ru", cpu: 12, mem: 245 },
   { id: 2, name: "Chrome #002", status: "running", proxy: "91.108.4.11:3128", account: "admin@corp.com", cpu: 8, mem: 198 },
@@ -92,6 +330,7 @@ const StatCard = ({ icon, label, value, sub, accent }: { icon: string; label: st
 export default function Index() {
   const [section, setSection] = useState<Section>("dashboard");
   const [proxyTab, setProxyTab] = useState(false);
+  const [scenarioModal, setScenarioModal] = useState<{ open: boolean; name?: string }>({ open: false });
 
   const nav: { id: Section; icon: string; label: string }[] = [
     { id: "dashboard", icon: "LayoutDashboard", label: "Дашборд" },
@@ -324,7 +563,10 @@ export default function Index() {
             <div className="space-y-4 animate-fade-in">
               <div className="flex items-center justify-between">
                 <div className="text-[12px] text-slate-500">{mockScenarios.length} сценариев</div>
-                <button className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 transition-colors">
+                <button
+                  onClick={() => setScenarioModal({ open: true })}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 transition-colors"
+                >
                   <Icon name="Plus" size={12} />Создать сценарий
                 </button>
               </div>
@@ -349,7 +591,10 @@ export default function Index() {
                       <StatusBadge status={s.status} />
                       <div className="flex gap-1">
                         <button className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-emerald-400 transition-colors"><Icon name="Play" size={13} /></button>
-                        <button className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"><Icon name="Pencil" size={13} /></button>
+                        <button
+                          onClick={() => setScenarioModal({ open: true, name: s.name })}
+                          className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"
+                        ><Icon name="Pencil" size={13} /></button>
                         <button className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"><Icon name="Copy" size={13} /></button>
                         <button className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-red-400 transition-colors"><Icon name="Trash2" size={13} /></button>
                       </div>
@@ -512,6 +757,13 @@ export default function Index() {
 
         </div>
       </main>
+
+      {scenarioModal.open && (
+        <ScenarioModal
+          scenarioName={scenarioModal.name}
+          onClose={() => setScenarioModal({ open: false })}
+        />
+      )}
     </div>
   );
 }
