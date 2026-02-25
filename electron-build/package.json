@@ -1,0 +1,36 @@
+{
+  "name": "browserctrl",
+  "productName": "BrowserCtrl",
+  "version": "1.0.0",
+  "description": "BrowserCtrl Desktop App",
+  "main": "electron.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --mac --x64 --arm64"
+  },
+  "build": {
+    "appId": "dev.browserctrl.app",
+    "productName": "BrowserCtrl",
+    "files": [
+      "electron.js",
+      "../dist/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] }
+      ]
+    },
+    "dmg": {
+      "title": "BrowserCtrl",
+      "backgroundColor": "#0d1117"
+    }
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0"
+  }
+}
