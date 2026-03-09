@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 
 type Section = "dashboard" | "browsers" | "accounts" | "scenarios" | "logs" | "settings";
@@ -10,6 +10,25 @@ interface ScenarioStep {
   type: StepType;
   label: string;
   params: Record<string, string>;
+}
+
+interface Account {
+  id: number;
+  login: string;
+  password: string;
+  site: string;
+  proxy: string;
+  status: "active" | "inactive" | "banned";
+  lastLogin: string;
+}
+
+interface Scenario {
+  id: number;
+  name: string;
+  steps: ScenarioStep[];
+  status: "active" | "draft" | "disabled";
+  lastRun: string;
+  successRate: number;
 }
 
 const STEP_TYPES: { type: StepType; icon: string; label: string; color: string; fields: { key: string; label: string; placeholder: string }[] }[] = [
@@ -38,9 +57,21 @@ const defaultSteps: ScenarioStep[] = [
   { id: 4, type: "wait", label: "Пауза", params: { ms: "1500" } },
 ];
 
-function ScenarioModal({ onClose, scenarioName }: { onClose: () => void; scenarioName?: string }) {
+function ScenarioModal({
+  onClose,
+  scenarioName,
+  initialSteps,
+  onSave,
+}: {
+  onClose: () => void;
+  scenarioName?: string;
+  initialSteps?: ScenarioStep[];
+  onSave: (name: string, steps: ScenarioStep[]) => void;
+}) {
   const [name, setName] = useState(scenarioName ?? "Новый сценарий");
-  const [steps, setSteps] = useState<ScenarioStep[]>(scenarioName ? defaultSteps : []);
+  const [steps, setSteps] = useState<ScenarioStep[]>(
+    initialSteps ?? (scenarioName ? defaultSteps : [])
+  );
   const [selectedStep, setSelectedStep] = useState<number | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
@@ -89,7 +120,10 @@ function ScenarioModal({ onClose, scenarioName }: { onClose: () => void; scenari
             className="flex-1 bg-transparent text-[15px] font-semibold text-slate-100 outline-none placeholder-slate-600 border-b border-transparent focus:border-blue-500/40 transition-colors pb-0.5"
           />
           <div className="flex items-center gap-2">
-            <button className="px-4 py-1.5 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 transition-colors font-medium">
+            <button
+              onClick={() => onSave(name, steps)}
+              className="px-4 py-1.5 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 transition-colors font-medium"
+            >
               Сохранить
             </button>
             <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1a2333] text-slate-500 hover:text-slate-300 transition-colors">
@@ -153,88 +187,329 @@ function ScenarioModal({ onClose, scenarioName }: { onClose: () => void; scenari
             </div>
 
             {/* Add step */}
-            <div className="p-2 border-t border-[#1e2837] flex-shrink-0 relative">
-              <button
-                onClick={() => setShowPicker(p => !p)}
-                className="w-full flex items-center justify-center gap-2 py-2 rounded border border-dashed border-[#2a3a50] text-[12px] text-slate-500 hover:text-slate-300 hover:border-blue-500/40 transition-colors"
-              >
-                <Icon name="Plus" size={12} />Добавить шаг
-              </button>
-
-              {showPicker && (
-                <div className="absolute bottom-full left-2 right-2 mb-1 bg-[#141920] border border-[#1e2837] rounded-lg overflow-hidden shadow-xl z-10">
+            <div className="p-2 border-t border-[#1e2837] flex-shrink-0">
+              {showPicker ? (
+                <div className="grid grid-cols-2 gap-1">
                   {STEP_TYPES.map(t => (
                     <button
                       key={t.type}
                       onClick={() => addStep(t.type)}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-[#1a2333] transition-colors text-left"
+                      className={`flex items-center gap-1.5 px-2 py-1.5 rounded border text-[11px] transition-colors hover:opacity-90 ${t.color}`}
                     >
-                      <div className={`w-6 h-6 rounded flex items-center justify-center border flex-shrink-0 ${t.color}`}>
-                        <Icon name={t.icon} size={11} />
-                      </div>
-                      <span className="text-[12px] text-slate-300">{t.label}</span>
+                      <Icon name={t.icon} size={11} />
+                      <span className="truncate">{t.label}</span>
                     </button>
                   ))}
+                  <button
+                    onClick={() => setShowPicker(false)}
+                    className="col-span-2 py-1.5 rounded border border-[#1e2837] text-[11px] text-slate-500 hover:text-slate-300 transition-colors"
+                  >
+                    Отмена
+                  </button>
                 </div>
+              ) : (
+                <button
+                  onClick={() => setShowPicker(true)}
+                  className="w-full flex items-center justify-center gap-2 py-2 rounded border border-dashed border-[#2a3a50] text-[12px] text-slate-500 hover:text-slate-300 hover:border-[#3a4a60] transition-colors"
+                >
+                  <Icon name="Plus" size={13} />
+                  Добавить шаг
+                </button>
               )}
             </div>
           </div>
 
-          {/* Step params */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {active && activeDef ? (
-              <>
-                <div className="px-6 py-3 border-b border-[#1e2837] flex items-center gap-3 flex-shrink-0">
-                  <div className={`w-7 h-7 rounded flex items-center justify-center border ${activeDef.color}`}>
-                    <Icon name={activeDef.icon} size={13} />
+          {/* Step editor */}
+          {active && activeDef ? (
+            <>
+              <div className="flex-1 overflow-auto p-6 min-w-0">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center border ${activeDef.color}`}>
+                    <Icon name={activeDef.icon} size={16} />
                   </div>
                   <div>
-                    <div className="text-[13px] font-medium text-slate-200">{activeDef.label}</div>
-                    <div className="text-[10px] text-slate-600 font-mono">шаг {steps.findIndex(s => s.id === active.id) + 1} из {steps.length}</div>
+                    <div className="text-[14px] font-semibold text-slate-100">{activeDef.label}</div>
+                    <div className="text-[11px] text-slate-500 font-mono">Шаг {steps.findIndex(s => s.id === active.id) + 1} из {steps.length}</div>
                   </div>
                 </div>
-                <div className="flex-1 overflow-auto p-6 space-y-4">
-                  {activeDef.fields.map(field => (
-                    <div key={field.key}>
-                      <label className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-2 block">{field.label}</label>
-                      <input
-                        value={active.params[field.key] ?? ""}
-                        onChange={e => updateParam(active.id, field.key, e.target.value)}
-                        placeholder={field.placeholder}
-                        className="w-full bg-[#0c1017] border border-[#1e2837] rounded-lg px-4 py-2.5 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-700"
-                      />
-                    </div>
-                  ))}
 
-                  <div className="mt-6 pt-5 border-t border-[#1a2333]">
-                    <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-3">Управление шагом</div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => { const i = steps.findIndex(s => s.id === active.id); if (i > 0) moveStep(i, i - 1); }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#141920] border border-[#1e2837] rounded text-[12px] text-slate-400 hover:text-slate-200 transition-colors"
-                      ><Icon name="ArrowUp" size={12} />Вверх</button>
-                      <button
-                        onClick={() => { const i = steps.findIndex(s => s.id === active.id); if (i < steps.length - 1) moveStep(i, i + 1); }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#141920] border border-[#1e2837] rounded text-[12px] text-slate-400 hover:text-slate-200 transition-colors"
-                      ><Icon name="ArrowDown" size={12} />Вниз</button>
-                      <button
-                        onClick={() => removeStep(active.id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded text-[12px] text-red-400 hover:bg-red-500/20 transition-colors ml-auto"
-                      ><Icon name="Trash2" size={12} />Удалить шаг</button>
-                    </div>
+                {activeDef.fields.map(field => (
+                  <div key={field.key} className="mb-4">
+                    <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-2">{field.label}</label>
+                    <input
+                      value={active.params[field.key] ?? ""}
+                      onChange={e => updateParam(active.id, field.key, e.target.value)}
+                      placeholder={field.placeholder}
+                      className="w-full bg-[#0c1017] border border-[#1e2837] rounded-lg px-4 py-2.5 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-700"
+                    />
+                  </div>
+                ))}
+
+                <div className="mt-6 pt-5 border-t border-[#1a2333]">
+                  <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-3">Управление шагом</div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { const i = steps.findIndex(s => s.id === active.id); if (i > 0) moveStep(i, i - 1); }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#141920] border border-[#1e2837] rounded text-[12px] text-slate-400 hover:text-slate-200 transition-colors"
+                    ><Icon name="ArrowUp" size={12} />Вверх</button>
+                    <button
+                      onClick={() => { const i = steps.findIndex(s => s.id === active.id); if (i < steps.length - 1) moveStep(i, i + 1); }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#141920] border border-[#1e2837] rounded text-[12px] text-slate-400 hover:text-slate-200 transition-colors"
+                    ><Icon name="ArrowDown" size={12} />Вниз</button>
+                    <button
+                      onClick={() => removeStep(active.id)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded text-[12px] text-red-400 hover:bg-red-500/20 transition-colors ml-auto"
+                    ><Icon name="Trash2" size={12} />Удалить шаг</button>
                   </div>
                 </div>
-              </>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-                <div className="w-14 h-14 rounded-xl bg-[#141920] border border-[#1e2837] flex items-center justify-center mb-4">
-                  <Icon name="MousePointer2" size={22} className="text-slate-600" />
-                </div>
-                <div className="text-[13px] text-slate-500 mb-1">Выберите шаг для редактирования</div>
-                <div className="text-[11px] text-slate-600">или добавьте новый шаг слева</div>
               </div>
-            )}
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+              <div className="w-14 h-14 rounded-xl bg-[#141920] border border-[#1e2837] flex items-center justify-center mb-4">
+                <Icon name="MousePointer2" size={22} className="text-slate-600" />
+              </div>
+              <div className="text-[13px] text-slate-500 mb-1">Выберите шаг для редактирования</div>
+              <div className="text-[11px] text-slate-600">или добавьте новый шаг слева</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AccountModal({
+  onClose,
+  account,
+  onSave,
+}: {
+  onClose: () => void;
+  account?: Account;
+  onSave: (data: Omit<Account, "id" | "lastLogin">) => void;
+}) {
+  const [login, setLogin] = useState(account?.login ?? "");
+  const [password, setPassword] = useState(account?.password ?? "");
+  const [site, setSite] = useState(account?.site ?? "");
+  const [proxy, setProxy] = useState(account?.proxy ?? "");
+  const [status, setStatus] = useState<Account["status"]>(account?.status ?? "active");
+
+  const handleSave = () => {
+    if (!login.trim()) return;
+    onSave({ login: login.trim(), password, site: site.trim(), proxy: proxy.trim(), status });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+      <div className="bg-[#141920] border border-[#1e2837] rounded-xl shadow-2xl w-full max-w-md p-6 space-y-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded bg-blue-600/20 border border-blue-600/30 flex items-center justify-center">
+              <Icon name="UserPlus" size={16} className="text-blue-400" />
+            </div>
+            <div>
+              <div className="text-[14px] font-semibold text-slate-100">{account ? "Редактировать аккаунт" : "Добавить аккаунт"}</div>
+              <div className="text-[11px] text-slate-500">Заполните данные аккаунта</div>
+            </div>
           </div>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1a2333] text-slate-500 hover:text-slate-300 transition-colors">
+            <Icon name="X" size={15} />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">Логин *</label>
+            <input
+              value={login}
+              onChange={e => setLogin(e.target.value)}
+              placeholder="user@example.com"
+              className="w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2.5 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-600"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">Пароль</label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2.5 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-600"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">Сайт</label>
+            <input
+              value={site}
+              onChange={e => setSite(e.target.value)}
+              placeholder="https://example.com"
+              className="w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2.5 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-600"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">
+              Прокси <span className="text-slate-600 normal-case tracking-normal">(необязательно)</span>
+            </label>
+            <input
+              value={proxy}
+              onChange={e => setProxy(e.target.value)}
+              placeholder="host:port  или  user:pass@host:port"
+              className="w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2.5 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-600"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">Статус</label>
+            <select
+              value={status}
+              onChange={e => setStatus(e.target.value as Account["status"])}
+              className="w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2.5 text-[13px] text-slate-200 outline-none focus:border-blue-500/50 transition-colors"
+            >
+              <option value="active">Активен</option>
+              <option value="inactive">Неактивен</option>
+              <option value="banned">Заблокирован</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2 bg-[#0c1017] border border-[#1e2837] rounded text-[13px] text-slate-400 hover:text-slate-200 hover:bg-[#141920] transition-colors"
+          >
+            Отмена
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!login.trim()}
+            className="flex-1 py-2 bg-blue-600 rounded text-[13px] text-white hover:bg-blue-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Сохранить
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RunModal({
+  scenario,
+  accounts,
+  onClose,
+}: {
+  scenario: Scenario;
+  accounts: Account[];
+  onClose: () => void;
+}) {
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+
+  const toggle = (id: number) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => setSelected(new Set(accounts.map(a => a.id)));
+  const clearAll = () => setSelected(new Set());
+
+  const handleRun = () => {
+    const chosen = accounts.filter(a => selected.has(a.id));
+    chosen.forEach(account => {
+      const eAPI = typeof window !== "undefined"
+        ? (window as Record<string, unknown>).electronAPI as { launchBrowser?: (opts: { url: string; proxy: string }) => void } | undefined
+        : undefined;
+      if (eAPI?.launchBrowser) {
+        eAPI.launchBrowser({ url: account.site, proxy: account.proxy });
+      } else {
+        console.log(`[RunModal] Запуск браузера для аккаунта "${account.login}", сайт: "${account.site}", прокси: "${account.proxy}"`);
+      }
+    });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+      <div className="bg-[#141920] border border-[#1e2837] rounded-xl shadow-2xl w-full max-w-md p-6 space-y-5 animate-fade-in">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded bg-emerald-600/20 border border-emerald-600/30 flex items-center justify-center">
+              <Icon name="Play" size={16} className="text-emerald-400" />
+            </div>
+            <div>
+              <div className="text-[14px] font-semibold text-slate-100">Запустить: {scenario.name}</div>
+              <div className="text-[11px] text-slate-500">Выберите аккаунты для запуска</div>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1a2333] text-slate-500 hover:text-slate-300 transition-colors">
+            <Icon name="X" size={15} />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={selectAll}
+            className="px-3 py-1.5 bg-[#0c1017] border border-[#1e2837] rounded text-[12px] text-slate-400 hover:text-slate-200 hover:bg-[#1a2333] transition-colors"
+          >
+            Выбрать все
+          </button>
+          <button
+            onClick={clearAll}
+            className="px-3 py-1.5 bg-[#0c1017] border border-[#1e2837] rounded text-[12px] text-slate-400 hover:text-slate-200 hover:bg-[#1a2333] transition-colors"
+          >
+            Снять выбор
+          </button>
+          <div className="flex-1 text-right text-[11px] text-slate-500">
+            Выбрано: {selected.size}
+          </div>
+        </div>
+
+        {accounts.length === 0 ? (
+          <div className="text-center py-6 text-[13px] text-slate-500">
+            <Icon name="Users" size={24} className="mx-auto mb-2 opacity-30" />
+            Нет аккаунтов. Добавьте аккаунты в разделе «Аккаунты».
+          </div>
+        ) : (
+          <div className="space-y-1.5 max-h-64 overflow-auto pr-1">
+            {accounts.map(account => (
+              <label
+                key={account.id}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded border cursor-pointer transition-colors ${
+                  selected.has(account.id)
+                    ? "bg-[#1a2c42] border-blue-500/30"
+                    : "bg-[#0c1017] border-[#1e2837] hover:bg-[#141920]"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={selected.has(account.id)}
+                  onChange={() => toggle(account.id)}
+                  className="w-3.5 h-3.5 accent-blue-500"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="text-[12px] text-slate-200 truncate font-mono">{account.login}</div>
+                  <div className="text-[10px] text-slate-500 truncate">{account.site || "—"}</div>
+                </div>
+                <StatusBadge status={account.status} />
+              </label>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2 bg-[#0c1017] border border-[#1e2837] rounded text-[13px] text-slate-400 hover:text-slate-200 hover:bg-[#141920] transition-colors"
+          >
+            Отмена
+          </button>
+          <button
+            onClick={handleRun}
+            disabled={selected.size === 0}
+            className="flex-1 py-2 bg-emerald-600 rounded text-[13px] text-white hover:bg-emerald-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Запустить {selected.size > 0 ? `${selected.size} браузер${selected.size === 1 ? "" : selected.size < 5 ? "а" : "ов"}` : ""}
+          </button>
         </div>
       </div>
     </div>
@@ -248,22 +523,6 @@ const mockBrowsers = [
   { id: 4, name: "Chrome #004", status: "stopped", proxy: "78.46.90.11:1080", account: "bot@service.io", cpu: 0, mem: 0 },
   { id: 5, name: "Chrome #005", status: "running", proxy: "94.130.55.22:9090", account: "worker@app.ru", cpu: 19, mem: 312 },
   { id: 6, name: "Chrome #006", status: "error", proxy: "5.180.61.24:3000", account: "sys@domain.net", cpu: 0, mem: 87 },
-];
-
-const mockAccounts = [
-  { id: 1, login: "user@mail.ru", password: "••••••••", site: "mail.ru", proxy: "185.22.11.4:8080", status: "active", lastLogin: "25.02.2026 14:32" },
-  { id: 2, login: "admin@corp.com", password: "••••••••", site: "corp.com", proxy: "91.108.4.11:3128", status: "active", lastLogin: "25.02.2026 11:15" },
-  { id: 3, login: "test@test.ru", password: "••••••••", site: "test.ru", proxy: "195.144.21.7:8888", status: "inactive", lastLogin: "24.02.2026 09:44" },
-  { id: 4, login: "bot@service.io", password: "••••••••", site: "service.io", proxy: "78.46.90.11:1080", status: "banned", lastLogin: "23.02.2026 22:01" },
-  { id: 5, login: "worker@app.ru", password: "••••••••", site: "app.ru", proxy: "94.130.55.22:9090", status: "active", lastLogin: "25.02.2026 15:50" },
-];
-
-const mockScenarios = [
-  { id: 1, name: "Авторизация + парсинг", steps: 7, status: "active", lastRun: "25.02.2026 15:00", successRate: 98 },
-  { id: 2, name: "Регистрация аккаунтов", steps: 12, status: "active", lastRun: "25.02.2026 12:30", successRate: 87 },
-  { id: 3, name: "Массовая рассылка", steps: 5, status: "draft", lastRun: "—", successRate: 0 },
-  { id: 4, name: "Мониторинг цен", steps: 9, status: "active", lastRun: "25.02.2026 10:15", successRate: 100 },
-  { id: 5, name: "Сбор контактов", steps: 14, status: "disabled", lastRun: "21.02.2026 08:00", successRate: 72 },
 ];
 
 const mockLogs = [
@@ -319,7 +578,7 @@ const StatCard = ({ icon, label, value, sub, accent }: { icon: string; label: st
     <div className="flex items-center justify-between">
       <span className="text-[11px] font-medium text-slate-500 uppercase tracking-widest">{label}</span>
       <div className={`w-8 h-8 rounded flex items-center justify-center ${accent ?? "bg-blue-500/10"}`}>
-        <Icon name={icon} size={16} className={accent ? "text-blue-400" : "text-blue-400"} />
+        <Icon name={icon} size={16} className="text-blue-400" />
       </div>
     </div>
     <div className="font-ibm text-3xl font-semibold text-slate-100 leading-none">{value}</div>
@@ -327,15 +586,26 @@ const StatCard = ({ icon, label, value, sub, accent }: { icon: string; label: st
   </div>
 );
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const electronAPI = typeof window !== 'undefined' ? (window as Record<string, any>).electronAPI : null;
-
 export default function Index() {
   const [section, setSection] = useState<Section>("dashboard");
   const [proxyTab, setProxyTab] = useState(false);
-  const [scenarioModal, setScenarioModal] = useState<{ open: boolean; name?: string }>({ open: false });
 
-  // Диалог запуска браузера
+  // Accounts state with localStorage persistence
+  const [accounts, setAccounts] = useState<Account[]>(() => {
+    try { return JSON.parse(localStorage.getItem("bc_accounts") || "[]"); } catch { return []; }
+  });
+  const [accountModal, setAccountModal] = useState<{ open: boolean; account?: Account }>({ open: false });
+
+  // Scenarios state with localStorage persistence
+  const [scenarios, setScenarios] = useState<Scenario[]>(() => {
+    try { return JSON.parse(localStorage.getItem("bc_scenarios") || "[]"); } catch { return []; }
+  });
+  const [scenarioModal, setScenarioModal] = useState<{ open: boolean; scenario?: Scenario }>({ open: false });
+
+  // Run modal
+  const [runModal, setRunModal] = useState<{ open: boolean; scenario?: Scenario }>({ open: false });
+
+  // Launch browser modal
   const [launchModal, setLaunchModal] = useState(false);
   const [launchUrl, setLaunchUrl] = useState("");
   const [launchProxy, setLaunchProxy] = useState("");
@@ -343,19 +613,78 @@ export default function Index() {
   const [launchError, setLaunchError] = useState("");
   const [launchResult, setLaunchResult] = useState<string | null>(null);
 
+  // Persist accounts
+  useEffect(() => {
+    localStorage.setItem("bc_accounts", JSON.stringify(accounts));
+  }, [accounts]);
+
+  // Persist scenarios
+  useEffect(() => {
+    localStorage.setItem("bc_scenarios", JSON.stringify(scenarios));
+  }, [scenarios]);
+
+  // Account CRUD
+  const saveAccount = (data: Omit<Account, "id" | "lastLogin">) => {
+    if (accountModal.account) {
+      setAccounts(prev => prev.map(a =>
+        a.id === accountModal.account!.id
+          ? { ...a, ...data }
+          : a
+      ));
+    } else {
+      const now = new Date();
+      const lastLogin = `${now.getDate().toString().padStart(2, "0")}.${(now.getMonth() + 1).toString().padStart(2, "0")}.${now.getFullYear()} ${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+      setAccounts(prev => [...prev, { id: Date.now(), lastLogin, ...data }]);
+    }
+    setAccountModal({ open: false });
+  };
+
+  const deleteAccount = (id: number) => {
+    setAccounts(prev => prev.filter(a => a.id !== id));
+  };
+
+  // Scenario CRUD
+  const saveScenario = (name: string, steps: ScenarioStep[]) => {
+    if (scenarioModal.scenario) {
+      setScenarios(prev => prev.map(s =>
+        s.id === scenarioModal.scenario!.id
+          ? { ...s, name, steps }
+          : s
+      ));
+    } else {
+      const newScenario: Scenario = {
+        id: Date.now(),
+        name,
+        steps,
+        status: "draft",
+        lastRun: "—",
+        successRate: 0,
+      };
+      setScenarios(prev => [...prev, newScenario]);
+    }
+    setScenarioModal({ open: false });
+  };
+
+  const deleteScenario = (id: number) => {
+    setScenarios(prev => prev.filter(s => s.id !== id));
+  };
+
   async function handleLaunch() {
     if (!launchUrl.trim()) { setLaunchError("Укажи URL сайта"); return; }
     setLaunchLoading(true);
     setLaunchError("");
     setLaunchResult(null);
     try {
-      if (!electronAPI) throw new Error("Запуск доступен только в desktop-приложении");
-      const res = await electronAPI.launchBrowser({
+      const eAPI = typeof window !== "undefined"
+        ? (window as Record<string, unknown>).electronAPI as { launchBrowser?: (opts: { url: string; proxy?: string }) => Promise<{ ok: boolean; error?: string; data?: { id: number; url: string } }> } | undefined
+        : undefined;
+      if (!eAPI?.launchBrowser) throw new Error("Запуск доступен только в desktop-приложении");
+      const res = await eAPI.launchBrowser({
         url: launchUrl.trim(),
         proxy: launchProxy.trim() || undefined,
       });
       if (!res.ok) throw new Error(res.error);
-      setLaunchResult(`Браузер #${res.data.id} запущен → ${res.data.url}`);
+      setLaunchResult(`Браузер #${res.data?.id} запущен → ${res.data?.url}`);
       setLaunchUrl("");
       setLaunchProxy("");
     } catch (e) {
@@ -445,8 +774,8 @@ export default function Index() {
               <div className="grid grid-cols-4 gap-4">
                 <StatCard icon="Monitor" label="Всего браузеров" value={mockBrowsers.length} sub="6 зарегистрировано" />
                 <StatCard icon="Zap" label="Активных" value={running} sub="Прямо сейчас" accent="bg-emerald-500/10" />
-                <StatCard icon="Users" label="Аккаунтов" value={mockAccounts.length} sub="4 активных" />
-                <StatCard icon="Workflow" label="Сценариев" value={mockScenarios.length} sub="3 активных" />
+                <StatCard icon="Users" label="Аккаунтов" value={accounts.length} sub={`${accounts.filter(a => a.status === "active").length} активных`} />
+                <StatCard icon="Workflow" label="Сценариев" value={scenarios.length} sub={`${scenarios.filter(s => s.status === "active").length} активных`} />
               </div>
 
               <div className="grid grid-cols-3 gap-4">
@@ -540,7 +869,6 @@ export default function Index() {
                             <button className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"><Icon name="Play" size={12} /></button>
                             <button className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"><Icon name="Pause" size={12} /></button>
                             <button className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-red-400 transition-colors"><Icon name="Square" size={12} /></button>
-                            <button className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"><Icon name="Settings2" size={12} /></button>
                           </div>
                         </td>
                       </tr>
@@ -555,42 +883,58 @@ export default function Index() {
           {section === "accounts" && (
             <div className="space-y-4 animate-fade-in">
               <div className="flex items-center justify-between">
-                <div className="text-[12px] text-slate-500">{mockAccounts.length} аккаунтов</div>
-                <button className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 transition-colors">
+                <div className="text-[12px] text-slate-500">{accounts.length} аккаунтов</div>
+                <button
+                  onClick={() => setAccountModal({ open: true })}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 transition-colors"
+                >
                   <Icon name="Plus" size={12} />Добавить аккаунт
                 </button>
               </div>
 
-              <div className="bg-[#141920] border border-[#1e2837] rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-[#1e2837]">
-                      {["Логин", "Пароль", "Сайт", "Прокси", "Статус", "Последний вход", ""].map(h => (
-                        <th key={h} className="text-left px-4 py-3 text-[11px] font-medium text-slate-500 uppercase tracking-widest">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mockAccounts.map((a, i) => (
-                      <tr key={a.id} className={`border-b border-[#1a2333] hover:bg-[#1a2333]/50 transition-colors ${i === mockAccounts.length - 1 ? "border-b-0" : ""}`}>
-                        <td className="px-4 py-3 text-[12px] text-slate-200">{a.login}</td>
-                        <td className="px-4 py-3 font-mono text-[12px] text-slate-500">{a.password}</td>
-                        <td className="px-4 py-3 text-[12px] text-slate-400">{a.site}</td>
-                        <td className="px-4 py-3 font-mono text-[12px] text-slate-400">{a.proxy}</td>
-                        <td className="px-4 py-3"><StatusBadge status={a.status} /></td>
-                        <td className="px-4 py-3 font-mono text-[12px] text-slate-500">{a.lastLogin}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex gap-1">
-                            <button className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"><Icon name="Eye" size={12} /></button>
-                            <button className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"><Icon name="Pencil" size={12} /></button>
-                            <button className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-red-400 transition-colors"><Icon name="Trash2" size={12} /></button>
-                          </div>
-                        </td>
+              {accounts.length === 0 ? (
+                <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-12 text-center">
+                  <Icon name="Users" size={32} className="mx-auto mb-3 text-slate-600" />
+                  <div className="text-[13px] text-slate-500 mb-1">Нет аккаунтов</div>
+                  <div className="text-[11px] text-slate-600">Нажмите «Добавить аккаунт» чтобы создать первый</div>
+                </div>
+              ) : (
+                <div className="bg-[#141920] border border-[#1e2837] rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-[#1e2837]">
+                        {["Логин", "Пароль", "Сайт", "Прокси", "Статус", "Последний вход", ""].map(h => (
+                          <th key={h} className="text-left px-4 py-3 text-[11px] font-medium text-slate-500 uppercase tracking-widest">{h}</th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {accounts.map((a, i) => (
+                        <tr key={a.id} className={`border-b border-[#1a2333] hover:bg-[#1a2333]/50 transition-colors ${i === accounts.length - 1 ? "border-b-0" : ""}`}>
+                          <td className="px-4 py-3 text-[12px] text-slate-200">{a.login}</td>
+                          <td className="px-4 py-3 font-mono text-[12px] text-slate-500">••••••••</td>
+                          <td className="px-4 py-3 text-[12px] text-slate-400">{a.site || "—"}</td>
+                          <td className="px-4 py-3 font-mono text-[12px] text-slate-400">{a.proxy || "—"}</td>
+                          <td className="px-4 py-3"><StatusBadge status={a.status} /></td>
+                          <td className="px-4 py-3 font-mono text-[12px] text-slate-500">{a.lastLogin}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => setAccountModal({ open: true, account: a })}
+                                className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"
+                              ><Icon name="Pencil" size={12} /></button>
+                              <button
+                                onClick={() => deleteAccount(a.id)}
+                                className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-red-400 transition-colors"
+                              ><Icon name="Trash2" size={12} /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 
@@ -598,7 +942,7 @@ export default function Index() {
           {section === "scenarios" && (
             <div className="space-y-4 animate-fade-in">
               <div className="flex items-center justify-between">
-                <div className="text-[12px] text-slate-500">{mockScenarios.length} сценариев</div>
+                <div className="text-[12px] text-slate-500">{scenarios.length} сценариев</div>
                 <button
                   onClick={() => setScenarioModal({ open: true })}
                   className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 transition-colors"
@@ -607,37 +951,50 @@ export default function Index() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 gap-3">
-                {mockScenarios.map(s => (
-                  <div key={s.id} className="bg-[#141920] border border-[#1e2837] rounded-lg p-4 flex items-center gap-6 hover:border-[#2a3a50] transition-colors">
-                    <div className="w-8 h-8 rounded bg-blue-600/10 border border-blue-600/20 flex items-center justify-center">
-                      <Icon name="Workflow" size={14} className="text-blue-400" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-[13px] font-medium text-slate-200">{s.name}</div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">{s.steps} шагов · Последний запуск: {s.lastRun}</div>
-                    </div>
-                    <div className="flex items-center gap-6">
-                      {s.successRate > 0 && (
-                        <div className="text-right">
-                          <div className="text-[12px] font-medium text-emerald-400">{s.successRate}%</div>
-                          <div className="text-[10px] text-slate-600">успешность</div>
+              {scenarios.length === 0 ? (
+                <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-12 text-center">
+                  <Icon name="Workflow" size={32} className="mx-auto mb-3 text-slate-600" />
+                  <div className="text-[13px] text-slate-500 mb-1">Нет сценариев</div>
+                  <div className="text-[11px] text-slate-600">Нажмите «Создать сценарий» чтобы добавить первый</div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3">
+                  {scenarios.map(s => (
+                    <div key={s.id} className="bg-[#141920] border border-[#1e2837] rounded-lg p-4 flex items-center gap-6 hover:border-[#2a3a50] transition-colors">
+                      <div className="w-8 h-8 rounded bg-blue-600/10 border border-blue-600/20 flex items-center justify-center">
+                        <Icon name="Workflow" size={14} className="text-blue-400" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-[13px] font-medium text-slate-200">{s.name}</div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">{s.steps.length} шагов · Последний запуск: {s.lastRun}</div>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        {s.successRate > 0 && (
+                          <div className="text-right">
+                            <div className="text-[12px] font-medium text-emerald-400">{s.successRate}%</div>
+                            <div className="text-[10px] text-slate-600">успешность</div>
+                          </div>
+                        )}
+                        <StatusBadge status={s.status} />
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => setRunModal({ open: true, scenario: s })}
+                            className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-emerald-400 transition-colors"
+                          ><Icon name="Play" size={13} /></button>
+                          <button
+                            onClick={() => setScenarioModal({ open: true, scenario: s })}
+                            className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"
+                          ><Icon name="Pencil" size={13} /></button>
+                          <button
+                            onClick={() => deleteScenario(s.id)}
+                            className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-red-400 transition-colors"
+                          ><Icon name="Trash2" size={13} /></button>
                         </div>
-                      )}
-                      <StatusBadge status={s.status} />
-                      <div className="flex gap-1">
-                        <button className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-emerald-400 transition-colors"><Icon name="Play" size={13} /></button>
-                        <button
-                          onClick={() => setScenarioModal({ open: true, name: s.name })}
-                          className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"
-                        ><Icon name="Pencil" size={13} /></button>
-                        <button className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"><Icon name="Copy" size={13} /></button>
-                        <button className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-red-400 transition-colors"><Icon name="Trash2" size={13} /></button>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -691,10 +1048,12 @@ export default function Index() {
                     onClick={() => setProxyTab(t === "Прокси")}
                     className={`pb-3 text-[13px] font-medium transition-colors border-b-2 -mb-px ${
                       (t === "Прокси") === proxyTab
-                        ? "text-blue-400 border-blue-400"
+                        ? "text-blue-400 border-blue-500"
                         : "text-slate-500 border-transparent hover:text-slate-300"
                     }`}
-                  >{t}</button>
+                  >
+                    {t}
+                  </button>
                 ))}
               </div>
 
@@ -794,14 +1153,35 @@ export default function Index() {
         </div>
       </main>
 
+      {/* Scenario Modal */}
       {scenarioModal.open && (
         <ScenarioModal
-          scenarioName={scenarioModal.name}
+          scenarioName={scenarioModal.scenario?.name}
+          initialSteps={scenarioModal.scenario?.steps}
           onClose={() => setScenarioModal({ open: false })}
+          onSave={saveScenario}
         />
       )}
 
-      {/* Модал запуска браузера */}
+      {/* Account Modal */}
+      {accountModal.open && (
+        <AccountModal
+          account={accountModal.account}
+          onClose={() => setAccountModal({ open: false })}
+          onSave={saveAccount}
+        />
+      )}
+
+      {/* Run Modal */}
+      {runModal.open && runModal.scenario && (
+        <RunModal
+          scenario={runModal.scenario}
+          accounts={accounts}
+          onClose={() => setRunModal({ open: false })}
+        />
+      )}
+
+      {/* Launch Browser Modal */}
       {launchModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-[#141920] border border-[#1e2837] rounded-xl shadow-2xl w-full max-w-md p-6 space-y-5 animate-fade-in">
@@ -826,7 +1206,7 @@ export default function Index() {
                 <input
                   value={launchUrl}
                   onChange={e => setLaunchUrl(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleLaunch()}
+                  onKeyDown={e => e.key === "Enter" && handleLaunch()}
                   placeholder="https://example.com"
                   className="w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2.5 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-600"
                 />
@@ -845,33 +1225,33 @@ export default function Index() {
             </div>
 
             {launchError && (
-              <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2.5">
-                <Icon name="AlertCircle" size={14} className="text-red-400 mt-0.5 flex-shrink-0" />
-                <span className="text-[12px] text-red-400">{launchError}</span>
+              <div className="flex items-start gap-2 px-3 py-2.5 bg-red-500/10 border border-red-500/20 rounded text-[12px] text-red-400">
+                <Icon name="AlertCircle" size={13} className="mt-0.5 flex-shrink-0" />
+                {launchError}
               </div>
             )}
 
             {launchResult && (
-              <div className="flex items-start gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2.5">
-                <Icon name="CheckCircle" size={14} className="text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span className="text-[12px] text-emerald-400">{launchResult}</span>
+              <div className="flex items-start gap-2 px-3 py-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded text-[12px] text-emerald-400">
+                <Icon name="CheckCircle" size={13} className="mt-0.5 flex-shrink-0" />
+                {launchResult}
               </div>
             )}
 
-            <div className="flex gap-2 pt-1">
+            <div className="flex gap-2">
               <button
                 onClick={() => setLaunchModal(false)}
-                className="flex-1 px-4 py-2 bg-[#1a2333] border border-[#1e2837] rounded text-[12px] text-slate-400 hover:text-slate-200 hover:bg-[#1e2d40] transition-colors"
-              >Отмена</button>
+                className="flex-1 py-2 bg-[#0c1017] border border-[#1e2837] rounded text-[13px] text-slate-400 hover:text-slate-200 hover:bg-[#141920] transition-colors"
+              >
+                Отмена
+              </button>
               <button
                 onClick={handleLaunch}
-                disabled={launchLoading}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                disabled={launchLoading || !launchUrl.trim()}
+                className="flex-1 py-2 bg-blue-600 rounded text-[13px] text-white hover:bg-blue-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {launchLoading
-                  ? <><Icon name="Loader2" size={13} className="animate-spin" />Запускаю...</>
-                  : <><Icon name="Play" size={13} />Запустить</>
-                }
+                {launchLoading && <Icon name="Loader2" size={13} className="animate-spin" />}
+                {launchLoading ? "Запуск..." : "Запустить"}
               </button>
             </div>
           </div>
