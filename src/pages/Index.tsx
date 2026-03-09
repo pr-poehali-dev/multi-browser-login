@@ -327,10 +327,43 @@ const StatCard = ({ icon, label, value, sub, accent }: { icon: string; label: st
   </div>
 );
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const electronAPI = typeof window !== 'undefined' ? (window as Record<string, any>).electronAPI : null;
+
 export default function Index() {
   const [section, setSection] = useState<Section>("dashboard");
   const [proxyTab, setProxyTab] = useState(false);
   const [scenarioModal, setScenarioModal] = useState<{ open: boolean; name?: string }>({ open: false });
+
+  // Диалог запуска браузера
+  const [launchModal, setLaunchModal] = useState(false);
+  const [launchUrl, setLaunchUrl] = useState("");
+  const [launchProxy, setLaunchProxy] = useState("");
+  const [launchLoading, setLaunchLoading] = useState(false);
+  const [launchError, setLaunchError] = useState("");
+  const [launchResult, setLaunchResult] = useState<string | null>(null);
+
+  async function handleLaunch() {
+    if (!launchUrl.trim()) { setLaunchError("Укажи URL сайта"); return; }
+    setLaunchLoading(true);
+    setLaunchError("");
+    setLaunchResult(null);
+    try {
+      if (!electronAPI) throw new Error("Запуск доступен только в desktop-приложении");
+      const res = await electronAPI.launchBrowser({
+        url: launchUrl.trim(),
+        proxy: launchProxy.trim() || undefined,
+      });
+      if (!res.ok) throw new Error(res.error);
+      setLaunchResult(`Браузер #${res.data.id} запущен → ${res.data.url}`);
+      setLaunchUrl("");
+      setLaunchProxy("");
+    } catch (e) {
+      setLaunchError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLaunchLoading(false);
+    }
+  }
 
   const nav: { id: Section; icon: string; label: string }[] = [
     { id: "dashboard", icon: "LayoutDashboard", label: "Дашборд" },
@@ -468,8 +501,11 @@ export default function Index() {
                   <button className="flex items-center gap-2 px-3 py-1.5 bg-[#141920] border border-[#1e2837] rounded text-[12px] text-slate-300 hover:bg-[#1a2333] transition-colors">
                     <Icon name="Play" size={12} />Запустить все
                   </button>
-                  <button className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 transition-colors">
-                    <Icon name="Plus" size={12} />Добавить
+                  <button
+                    onClick={() => { setLaunchModal(true); setLaunchError(""); setLaunchResult(null); }}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 transition-colors"
+                  >
+                    <Icon name="Plus" size={12} />Запустить браузер
                   </button>
                 </div>
               </div>
@@ -763,6 +799,83 @@ export default function Index() {
           scenarioName={scenarioModal.name}
           onClose={() => setScenarioModal({ open: false })}
         />
+      )}
+
+      {/* Модал запуска браузера */}
+      {launchModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#141920] border border-[#1e2837] rounded-xl shadow-2xl w-full max-w-md p-6 space-y-5 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded bg-blue-600/20 border border-blue-600/30 flex items-center justify-center">
+                  <Icon name="Globe" size={16} className="text-blue-400" />
+                </div>
+                <div>
+                  <div className="text-[14px] font-semibold text-slate-100">Запустить браузер</div>
+                  <div className="text-[11px] text-slate-500">Откроет Chrome с указанным сайтом</div>
+                </div>
+              </div>
+              <button onClick={() => setLaunchModal(false)} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1a2333] text-slate-500 hover:text-slate-300 transition-colors">
+                <Icon name="X" size={15} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">URL сайта *</label>
+                <input
+                  value={launchUrl}
+                  onChange={e => setLaunchUrl(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleLaunch()}
+                  placeholder="https://example.com"
+                  className="w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2.5 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-600"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">
+                  Прокси <span className="text-slate-600 normal-case tracking-normal">(необязательно)</span>
+                </label>
+                <input
+                  value={launchProxy}
+                  onChange={e => setLaunchProxy(e.target.value)}
+                  placeholder="host:port  или  user:pass@host:port"
+                  className="w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2.5 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-600"
+                />
+              </div>
+            </div>
+
+            {launchError && (
+              <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2.5">
+                <Icon name="AlertCircle" size={14} className="text-red-400 mt-0.5 flex-shrink-0" />
+                <span className="text-[12px] text-red-400">{launchError}</span>
+              </div>
+            )}
+
+            {launchResult && (
+              <div className="flex items-start gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2.5">
+                <Icon name="CheckCircle" size={14} className="text-emerald-400 mt-0.5 flex-shrink-0" />
+                <span className="text-[12px] text-emerald-400">{launchResult}</span>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => setLaunchModal(false)}
+                className="flex-1 px-4 py-2 bg-[#1a2333] border border-[#1e2837] rounded text-[12px] text-slate-400 hover:text-slate-200 hover:bg-[#1e2d40] transition-colors"
+              >Отмена</button>
+              <button
+                onClick={handleLaunch}
+                disabled={launchLoading}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {launchLoading
+                  ? <><Icon name="Loader2" size={13} className="animate-spin" />Запускаю...</>
+                  : <><Icon name="Play" size={13} />Запустить</>
+                }
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

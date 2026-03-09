@@ -13,6 +13,9 @@
     "productName": "BrowserCtrl",
     "files": [
       "electron.js",
+      "preload.js",
+      "browser-manager.js",
+      "node_modules/**/*",
       "../dist/**/*"
     ],
     "directories": {
@@ -29,6 +32,9 @@
       "title": "BrowserCtrl",
       "backgroundColor": "#0d1117"
     }
+  },
+  "dependencies": {
+    "puppeteer-core": "^21.0.0"
   },
   "devDependencies": {
     "electron": "^28.0.0",
