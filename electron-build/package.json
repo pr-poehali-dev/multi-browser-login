@@ -6,7 +6,10 @@
   "main": "electron.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --mac --x64 --arm64"
+    "dist": "electron-builder --mac --x64 --arm64",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux",
+    "dist:all": "electron-builder --mac --win --linux"
   },
   "build": {
     "appId": "dev.browserctrl.app",
@@ -31,6 +34,23 @@
     "dmg": {
       "title": "BrowserCtrl",
       "backgroundColor": "#0d1117"
+    },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64", "ia32"] }
+      ],
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerLanguages": ["en_US", "ru_RU"],
+      "language": "1049"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Development",
+      "icon": "icon.png"
     }
   },
   "dependencies": {
