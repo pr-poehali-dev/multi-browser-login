@@ -31,6 +31,74 @@ interface Scenario {
   successRate: number;
 }
 
+interface Proxy {
+  id: number;
+  host: string;
+  port: number;
+  type: "HTTP" | "SOCKS5" | "SOCKS4";
+  country: string;
+  status: "active" | "inactive" | "error";
+  speed: number;
+}
+
+interface Settings {
+  maxBrowsers: number;
+  connectionTimeout: number;
+  proxyRotationInterval: number;
+  chromiumPath: string;
+  profilesDir: string;
+  logsDir: string;
+  headless: boolean;
+  disableImages: boolean;
+  autoRotateProxy: boolean;
+  saveCookies: boolean;
+}
+
+interface ElectronBrowser {
+  id: number;
+  url: string;
+  proxy: string;
+  account: string;
+  scenarioName: string;
+  status: "running" | "paused" | "stopped" | "error" | "done";
+  currentStep: number;
+  totalSteps: number;
+  cpu: number;
+  mem: number;
+}
+
+interface ElectronAPI {
+  launchBrowser: (opts: { url: string; proxy?: string; account?: string; scenarioName?: string; steps?: ScenarioStep[]; settings?: Settings }) => Promise<{ ok: boolean; data?: { id: number; url: string; proxy: string | null; account: string | null }; error?: string }>;
+  closeBrowser: (id: number) => Promise<{ ok: boolean; error?: string }>;
+  pauseBrowser: (id: number) => Promise<{ ok: boolean; error?: string }>;
+  resumeBrowser: (id: number) => Promise<{ ok: boolean; error?: string }>;
+  listBrowsers: () => Promise<{ ok: boolean; data?: ElectronBrowser[] }>;
+  runScenario: (opts: { scenario: Scenario; accounts: Account[]; settings: Settings }) => Promise<{ ok: boolean; data?: Array<{ ok: boolean; accountLogin: string; data?: { id: number }; error?: string }> }>;
+  getLogs: (filter?: string) => Promise<{ ok: boolean; data?: Array<{ id: number; time: string; level: string; browser: string; message: string }> }>;
+  clearLogs: () => Promise<{ ok: boolean }>;
+  onBrowserStatus: (cb: (data: { id: number; status?: string; currentStep?: number; totalSteps?: number }) => void) => () => void;
+  onLog: (cb: (data: { id: number; time: string; level: string; browser: string; message: string }) => void) => () => void;
+}
+
+function getElectronAPI(): ElectronAPI | undefined {
+  if (typeof window !== "undefined") {
+    return (window as Record<string, unknown>).electronAPI as ElectronAPI | undefined;
+  }
+}
+
+const defaultSettings: Settings = {
+  maxBrowsers: 16,
+  connectionTimeout: 30,
+  proxyRotationInterval: 15,
+  chromiumPath: "/usr/bin/chromium",
+  profilesDir: "~/.browserctrl/profiles",
+  logsDir: "~/.browserctrl/logs",
+  headless: true,
+  disableImages: false,
+  autoRotateProxy: true,
+  saveCookies: true,
+};
+
 const STEP_TYPES: { type: StepType; icon: string; label: string; color: string; fields: { key: string; label: string; placeholder: string }[] }[] = [
   { type: "navigate", icon: "Globe", label: "Открыть страницу", color: "text-blue-400 bg-blue-500/10 border-blue-500/20",
     fields: [{ key: "url", label: "URL", placeholder: "https://example.com" }] },
@@ -57,6 +125,79 @@ const defaultSteps: ScenarioStep[] = [
   { id: 4, type: "wait", label: "Пауза", params: { ms: "1500" } },
 ];
 
+const mockBrowsers = [
+  { id: 1, name: "Chrome #001", status: "running", proxy: "185.22.11.4:8080", account: "user@mail.ru", cpu: 12, mem: 245 },
+  { id: 2, name: "Chrome #002", status: "running", proxy: "91.108.4.11:3128", account: "admin@corp.com", cpu: 8, mem: 198 },
+  { id: 3, name: "Chrome #003", status: "paused", proxy: "195.144.21.7:8888", account: "test@test.ru", cpu: 0, mem: 134 },
+  { id: 4, name: "Chrome #004", status: "stopped", proxy: "78.46.90.11:1080", account: "bot@service.io", cpu: 0, mem: 0 },
+  { id: 5, name: "Chrome #005", status: "running", proxy: "94.130.55.22:9090", account: "worker@app.ru", cpu: 19, mem: 312 },
+  { id: 6, name: "Chrome #006", status: "error", proxy: "5.180.61.24:3000", account: "sys@domain.net", cpu: 0, mem: 87 },
+];
+
+const mockLogs = [
+  { id: 1, time: "15:52:41", level: "info", browser: "Chrome #001", message: "Сценарий 'Авторизация + парсинг' запущен успешно" },
+  { id: 2, time: "15:51:33", level: "error", browser: "Chrome #006", message: "Ошибка подключения к прокси 5.180.61.24:3000 — таймаут" },
+  { id: 3, time: "15:50:12", level: "warn", browser: "Chrome #003", message: "Браузер переведён в режим паузы (лимит памяти)" },
+  { id: 4, time: "15:49:05", level: "info", browser: "Chrome #005", message: "Шаг 4/9 выполнен: данные успешно извлечены" },
+  { id: 5, time: "15:48:22", level: "error", browser: "Chrome #004", message: "Аккаунт bot@service.io заблокирован на сайте service.io" },
+  { id: 6, time: "15:47:10", level: "info", browser: "Chrome #002", message: "Прокси заменён на резервный: 91.108.4.11:3128" },
+  { id: 7, time: "15:46:58", level: "info", browser: "Chrome #001", message: "Cookie сохранены: 14 записей" },
+  { id: 8, time: "15:45:33", level: "warn", browser: "Chrome #005", message: "CAPTCHA обнаружена, попытка решения..." },
+  { id: 9, time: "15:44:11", level: "info", browser: "Chrome #002", message: "Сценарий 'Мониторинг цен' завершён: 240 позиций" },
+  { id: 10, time: "15:43:02", level: "error", browser: "Chrome #003", message: "Элемент не найден: #submit-btn (шаг 3)" },
+];
+
+const mockProxies: Proxy[] = [
+  { id: 1, host: "185.22.11.4", port: 8080, type: "HTTP", country: "RU", status: "active", speed: 45 },
+  { id: 2, host: "91.108.4.11", port: 3128, type: "HTTP", country: "DE", status: "active", speed: 12 },
+  { id: 3, host: "195.144.21.7", port: 8888, type: "SOCKS5", country: "NL", status: "active", speed: 28 },
+  { id: 4, host: "78.46.90.11", port: 1080, type: "SOCKS5", country: "US", status: "error", speed: 0 },
+  { id: 5, host: "94.130.55.22", port: 9090, type: "HTTP", country: "PL", status: "active", speed: 67 },
+  { id: 6, host: "5.180.61.24", port: 3000, type: "HTTP", country: "UA", status: "inactive", speed: 0 },
+];
+
+// ── Shared UI components ───────────────────────────────────────────────────────
+const StatusBadge = ({ status }: { status: string }) => {
+  const map: Record<string, { label: string; cls: string }> = {
+    running: { label: "Работает", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
+    paused: { label: "Пауза", cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
+    stopped: { label: "Остановлен", cls: "bg-slate-500/15 text-slate-400 border-slate-500/30" },
+    done: { label: "Завершён", cls: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+    error: { label: "Ошибка", cls: "bg-red-500/15 text-red-400 border-red-500/30" },
+    active: { label: "Активен", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
+    inactive: { label: "Неактивен", cls: "bg-slate-500/15 text-slate-400 border-slate-500/30" },
+    banned: { label: "Заблокирован", cls: "bg-red-500/15 text-red-400 border-red-500/30" },
+    draft: { label: "Черновик", cls: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+    disabled: { label: "Отключён", cls: "bg-slate-500/15 text-slate-400 border-slate-500/30" },
+    dead: { label: "Недоступен", cls: "bg-red-500/15 text-red-400 border-red-500/30" },
+  };
+  const s = map[status] ?? { label: status, cls: "bg-slate-500/15 text-slate-400" };
+  return <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[11px] font-medium tracking-wide ${s.cls}`}>{s.label}</span>;
+};
+
+const LogBadge = ({ level }: { level: string }) => {
+  const map: Record<string, string> = {
+    info: "text-blue-400",
+    warn: "text-amber-400",
+    error: "text-red-400",
+  };
+  return <span className={`font-mono text-[11px] uppercase font-semibold ${map[level] ?? "text-slate-400"}`}>{level}</span>;
+};
+
+const StatCard = ({ icon, label, value, sub, accent }: { icon: string; label: string; value: string | number; sub?: string; accent?: string }) => (
+  <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-5 flex flex-col gap-3 animate-fade-in">
+    <div className="flex items-center justify-between">
+      <span className="text-[11px] font-medium text-slate-500 uppercase tracking-widest">{label}</span>
+      <div className={`w-8 h-8 rounded flex items-center justify-center ${accent ?? "bg-blue-500/10"}`}>
+        <Icon name={icon} size={16} className="text-blue-400" />
+      </div>
+    </div>
+    <div className="font-ibm text-3xl font-semibold text-slate-100 leading-none">{value}</div>
+    {sub && <div className="text-[12px] text-slate-500">{sub}</div>}
+  </div>
+);
+
+// ── ScenarioModal ──────────────────────────────────────────────────────────────
 function ScenarioModal({
   onClose,
   scenarioName,
@@ -170,122 +311,102 @@ function ScenarioModal({
                     </div>
                     <button
                       onClick={e => { e.stopPropagation(); removeStep(step.id); }}
-                      className="w-4 h-4 flex items-center justify-center rounded text-slate-600 hover:text-red-400 transition-colors flex-shrink-0"
+                      className="w-5 h-5 flex items-center justify-center rounded hover:bg-red-500/20 text-slate-600 hover:text-red-400 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
                     >
                       <Icon name="X" size={10} />
                     </button>
                   </div>
                 );
               })}
-
-              {steps.length === 0 && (
-                <div className="text-center py-8 text-[12px] text-slate-600">
-                  <Icon name="Workflow" size={24} className="mx-auto mb-2 opacity-30" />
-                  Нет шагов
-                </div>
-              )}
             </div>
-
-            {/* Add step */}
-            <div className="p-2 border-t border-[#1e2837] flex-shrink-0">
-              {showPicker ? (
-                <div className="grid grid-cols-2 gap-1">
-                  {STEP_TYPES.map(t => (
-                    <button
-                      key={t.type}
-                      onClick={() => addStep(t.type)}
-                      className={`flex items-center gap-1.5 px-2 py-1.5 rounded border text-[11px] transition-colors hover:opacity-90 ${t.color}`}
-                    >
-                      <Icon name={t.icon} size={11} />
-                      <span className="truncate">{t.label}</span>
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => setShowPicker(false)}
-                    className="col-span-2 py-1.5 rounded border border-[#1e2837] text-[11px] text-slate-500 hover:text-slate-300 transition-colors"
-                  >
-                    Отмена
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowPicker(true)}
-                  className="w-full flex items-center justify-center gap-2 py-2 rounded border border-dashed border-[#2a3a50] text-[12px] text-slate-500 hover:text-slate-300 hover:border-[#3a4a60] transition-colors"
-                >
-                  <Icon name="Plus" size={13} />
-                  Добавить шаг
-                </button>
-              )}
+            <div className="p-2 border-t border-[#1e2837]">
+              <button
+                onClick={() => setShowPicker(!showPicker)}
+                className="w-full flex items-center justify-center gap-2 py-2 rounded border border-dashed border-[#1e2837] text-[12px] text-slate-500 hover:text-slate-300 hover:border-[#2a3a50] transition-colors"
+              >
+                <Icon name="Plus" size={13} />
+                Добавить шаг
+              </button>
             </div>
           </div>
 
+          {/* Step picker */}
+          {showPicker && (
+            <div className="w-52 border-r border-[#1e2837] flex flex-col flex-shrink-0">
+              <div className="px-4 py-3 text-[11px] font-medium text-slate-500 uppercase tracking-widest border-b border-[#1e2837]">
+                Тип шага
+              </div>
+              <div className="flex-1 overflow-auto p-2 space-y-0.5">
+                {STEP_TYPES.map(def => (
+                  <button
+                    key={def.type}
+                    onClick={() => addStep(def.type)}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded hover:bg-[#141d2a] transition-colors text-left"
+                  >
+                    <div className={`w-6 h-6 rounded flex items-center justify-center border flex-shrink-0 ${def.color}`}>
+                      <Icon name={def.icon} size={11} />
+                    </div>
+                    <span className="text-[12px] text-slate-300">{def.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Step editor */}
-          {active && activeDef ? (
-            <>
-              <div className="flex-1 overflow-auto p-6 min-w-0">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center border ${activeDef.color}`}>
-                    <Icon name={activeDef.icon} size={16} />
+          <div className="flex-1 overflow-auto p-5">
+            {active && activeDef ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className={`w-8 h-8 rounded flex items-center justify-center border ${activeDef.color}`}>
+                    <Icon name={activeDef.icon} size={15} />
                   </div>
                   <div>
                     <div className="text-[14px] font-semibold text-slate-100">{activeDef.label}</div>
-                    <div className="text-[11px] text-slate-500 font-mono">Шаг {steps.findIndex(s => s.id === active.id) + 1} из {steps.length}</div>
+                    <div className="text-[11px] text-slate-500 font-mono">{active.type}</div>
                   </div>
+                  <button
+                    onClick={() => removeStep(active.id)}
+                    className="ml-auto flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[11px] text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-colors"
+                  >
+                    <Icon name="Trash2" size={12} />
+                    Удалить шаг
+                  </button>
                 </div>
-
                 {activeDef.fields.map(field => (
-                  <div key={field.key} className="mb-4">
-                    <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-2">{field.label}</label>
+                  <div key={field.key}>
+                    <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">{field.label}</label>
                     <input
                       value={active.params[field.key] ?? ""}
                       onChange={e => updateParam(active.id, field.key, e.target.value)}
                       placeholder={field.placeholder}
-                      className="w-full bg-[#0c1017] border border-[#1e2837] rounded-lg px-4 py-2.5 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-700"
+                      className="w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-600"
                     />
                   </div>
                 ))}
-
-                <div className="mt-6 pt-5 border-t border-[#1a2333]">
-                  <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-3">Управление шагом</div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => { const i = steps.findIndex(s => s.id === active.id); if (i > 0) moveStep(i, i - 1); }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#141920] border border-[#1e2837] rounded text-[12px] text-slate-400 hover:text-slate-200 transition-colors"
-                    ><Icon name="ArrowUp" size={12} />Вверх</button>
-                    <button
-                      onClick={() => { const i = steps.findIndex(s => s.id === active.id); if (i < steps.length - 1) moveStep(i, i + 1); }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#141920] border border-[#1e2837] rounded text-[12px] text-slate-400 hover:text-slate-200 transition-colors"
-                    ><Icon name="ArrowDown" size={12} />Вниз</button>
-                    <button
-                      onClick={() => removeStep(active.id)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded text-[12px] text-red-400 hover:bg-red-500/20 transition-colors ml-auto"
-                    ><Icon name="Trash2" size={12} />Удалить шаг</button>
-                  </div>
-                </div>
               </div>
-            </>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-              <div className="w-14 h-14 rounded-xl bg-[#141920] border border-[#1e2837] flex items-center justify-center mb-4">
-                <Icon name="MousePointer2" size={22} className="text-slate-600" />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center text-slate-600">
+                <Icon name="MousePointer2" size={32} className="mb-3 opacity-30" />
+                <div className="text-[13px]">Выберите шаг для редактирования</div>
+                <div className="text-[11px] mt-1">или добавьте новый шаг</div>
               </div>
-              <div className="text-[13px] text-slate-500 mb-1">Выберите шаг для редактирования</div>
-              <div className="text-[11px] text-slate-600">или добавьте новый шаг слева</div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
+// ── AccountModal ───────────────────────────────────────────────────────────────
 function AccountModal({
-  onClose,
   account,
+  onClose,
   onSave,
 }: {
-  onClose: () => void;
   account?: Account;
+  onClose: () => void;
   onSave: (data: Omit<Account, "id" | "lastLogin">) => void;
 }) {
   const [login, setLogin] = useState(account?.login ?? "");
@@ -296,20 +417,21 @@ function AccountModal({
 
   const handleSave = () => {
     if (!login.trim()) return;
-    onSave({ login: login.trim(), password, site: site.trim(), proxy: proxy.trim(), status });
+    onSave({ login, password, site, proxy, status });
   };
 
+  const inputCls = "w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-600";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-[#141920] border border-[#1e2837] rounded-xl shadow-2xl w-full max-w-md p-6 space-y-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
+      <div className="bg-[#0e1520] border border-[#1e2837] rounded-xl shadow-2xl w-full max-w-md p-6 space-y-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded bg-blue-600/20 border border-blue-600/30 flex items-center justify-center">
-              <Icon name="UserPlus" size={16} className="text-blue-400" />
+              <Icon name="User" size={15} className="text-blue-400" />
             </div>
-            <div>
-              <div className="text-[14px] font-semibold text-slate-100">{account ? "Редактировать аккаунт" : "Добавить аккаунт"}</div>
-              <div className="text-[11px] text-slate-500">Заполните данные аккаунта</div>
+            <div className="text-[14px] font-semibold text-slate-100">
+              {account ? "Редактировать аккаунт" : "Новый аккаунт"}
             </div>
           </div>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1a2333] text-slate-500 hover:text-slate-300 transition-colors">
@@ -320,49 +442,26 @@ function AccountModal({
         <div className="space-y-3">
           <div>
             <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">Логин *</label>
-            <input
-              value={login}
-              onChange={e => setLogin(e.target.value)}
-              placeholder="user@example.com"
-              className="w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2.5 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-600"
-            />
+            <input value={login} onChange={e => setLogin(e.target.value)} placeholder="user@example.com" className={inputCls} />
           </div>
           <div>
             <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">Пароль</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2.5 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-600"
-            />
+            <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="••••••••" className={inputCls} />
           </div>
           <div>
             <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">Сайт</label>
-            <input
-              value={site}
-              onChange={e => setSite(e.target.value)}
-              placeholder="https://example.com"
-              className="w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2.5 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-600"
-            />
+            <input value={site} onChange={e => setSite(e.target.value)} placeholder="https://example.com" className={inputCls} />
           </div>
           <div>
-            <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">
-              Прокси <span className="text-slate-600 normal-case tracking-normal">(необязательно)</span>
-            </label>
-            <input
-              value={proxy}
-              onChange={e => setProxy(e.target.value)}
-              placeholder="host:port  или  user:pass@host:port"
-              className="w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2.5 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-600"
-            />
+            <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">Прокси</label>
+            <input value={proxy} onChange={e => setProxy(e.target.value)} placeholder="host:port" className={inputCls} />
           </div>
           <div>
             <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">Статус</label>
             <select
               value={status}
               onChange={e => setStatus(e.target.value as Account["status"])}
-              className="w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2.5 text-[13px] text-slate-200 outline-none focus:border-blue-500/50 transition-colors"
+              className={inputCls}
             >
               <option value="active">Активен</option>
               <option value="inactive">Неактивен</option>
@@ -372,10 +471,7 @@ function AccountModal({
         </div>
 
         <div className="flex gap-2 pt-1">
-          <button
-            onClick={onClose}
-            className="flex-1 py-2 bg-[#0c1017] border border-[#1e2837] rounded text-[13px] text-slate-400 hover:text-slate-200 hover:bg-[#141920] transition-colors"
-          >
+          <button onClick={onClose} className="flex-1 py-2 bg-[#0c1017] border border-[#1e2837] rounded text-[13px] text-slate-400 hover:text-slate-200 hover:bg-[#141920] transition-colors">
             Отмена
           </button>
           <button
@@ -383,7 +479,7 @@ function AccountModal({
             disabled={!login.trim()}
             className="flex-1 py-2 bg-blue-600 rounded text-[13px] text-white hover:bg-blue-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Сохранить
+            {account ? "Сохранить" : "Добавить"}
           </button>
         </div>
       </div>
@@ -391,14 +487,100 @@ function AccountModal({
   );
 }
 
+// ── ProxyModal ─────────────────────────────────────────────────────────────────
+function ProxyModal({
+  proxy,
+  onClose,
+  onSave,
+}: {
+  proxy?: Proxy;
+  onClose: () => void;
+  onSave: (data: Omit<Proxy, "id" | "status" | "speed">) => void;
+}) {
+  const [host, setHost] = useState(proxy?.host ?? "");
+  const [port, setPort] = useState(proxy?.port?.toString() ?? "");
+  const [type, setType] = useState<Proxy["type"]>(proxy?.type ?? "HTTP");
+  const [country, setCountry] = useState(proxy?.country ?? "");
+
+  const handleSave = () => {
+    if (!host.trim() || !port.trim()) return;
+    onSave({ host, port: Number(port), type, country });
+  };
+
+  const inputCls = "w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-600";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
+      <div className="bg-[#0e1520] border border-[#1e2837] rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded bg-blue-600/20 border border-blue-600/30 flex items-center justify-center">
+              <Icon name="Server" size={15} className="text-blue-400" />
+            </div>
+            <div className="text-[14px] font-semibold text-slate-100">
+              {proxy ? "Редактировать прокси" : "Новый прокси"}
+            </div>
+          </div>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1a2333] text-slate-500 hover:text-slate-300 transition-colors">
+            <Icon name="X" size={15} />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">Хост *</label>
+            <input value={host} onChange={e => setHost(e.target.value)} placeholder="185.22.11.4" className={inputCls} />
+          </div>
+          <div>
+            <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">Порт *</label>
+            <input value={port} onChange={e => setPort(e.target.value)} type="number" placeholder="8080" className={inputCls} />
+          </div>
+          <div>
+            <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">Тип</label>
+            <select value={type} onChange={e => setType(e.target.value as Proxy["type"])} className={inputCls}>
+              <option value="HTTP">HTTP</option>
+              <option value="SOCKS5">SOCKS5</option>
+              <option value="SOCKS4">SOCKS4</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">Страна</label>
+            <input value={country} onChange={e => setCountry(e.target.value)} placeholder="RU" className={inputCls} />
+          </div>
+        </div>
+
+        <div className="flex gap-2 pt-1">
+          <button onClick={onClose} className="flex-1 py-2 bg-[#0c1017] border border-[#1e2837] rounded text-[13px] text-slate-400 hover:text-slate-200 hover:bg-[#141920] transition-colors">
+            Отмена
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!host.trim() || !port.trim()}
+            className="flex-1 py-2 bg-blue-600 rounded text-[13px] text-white hover:bg-blue-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {proxy ? "Сохранить" : "Добавить"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── RunModal ───────────────────────────────────────────────────────────────────
 function RunModal({
   scenario,
   accounts,
+  settings,
   onClose,
+  setLiveBrowsers,
+  setScenarios,
 }: {
   scenario: Scenario;
   accounts: Account[];
+  settings: Settings;
   onClose: () => void;
+  setLiveBrowsers: React.Dispatch<React.SetStateAction<ElectronBrowser[]>>;
+  setScenarios: React.Dispatch<React.SetStateAction<Scenario[]>>;
 }) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
@@ -413,18 +595,23 @@ function RunModal({
   const selectAll = () => setSelected(new Set(accounts.map(a => a.id)));
   const clearAll = () => setSelected(new Set());
 
-  const handleRun = () => {
-    const chosen = accounts.filter(a => selected.has(a.id));
-    chosen.forEach(account => {
-      const eAPI = typeof window !== "undefined"
-        ? (window as Record<string, unknown>).electronAPI as { launchBrowser?: (opts: { url: string; proxy: string }) => void } | undefined
-        : undefined;
-      if (eAPI?.launchBrowser) {
-        eAPI.launchBrowser({ url: account.site, proxy: account.proxy });
-      } else {
-        console.log(`[RunModal] Запуск браузера для аккаунта "${account.login}", сайт: "${account.site}", прокси: "${account.proxy}"`);
-      }
-    });
+  const handleRun = async () => {
+    const api = getElectronAPI();
+    if (!api) {
+      // fallback: log only
+      console.log("[RunModal] RunScenario (no electron):", scenario.name, Array.from(selected));
+      onClose();
+      return;
+    }
+    const selectedAccounts = accounts.filter(a => selected.has(a.id));
+    const result = await api.runScenario({ scenario, accounts: selectedAccounts, settings });
+    if (result.ok && result.data) {
+      const listRes = await api.listBrowsers();
+      if (listRes.ok && listRes.data) setLiveBrowsers(listRes.data);
+      const now = new Date();
+      const lastRun = `${now.getDate().toString().padStart(2, "0")}.${(now.getMonth() + 1).toString().padStart(2, "0")}.${now.getFullYear()} ${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+      setScenarios(prev => prev.map(s => s.id === scenario.id ? { ...s, lastRun, status: "active" as const } : s));
+    }
     onClose();
   };
 
@@ -516,79 +703,70 @@ function RunModal({
   );
 }
 
-const mockBrowsers = [
-  { id: 1, name: "Chrome #001", status: "running", proxy: "185.22.11.4:8080", account: "user@mail.ru", cpu: 12, mem: 245 },
-  { id: 2, name: "Chrome #002", status: "running", proxy: "91.108.4.11:3128", account: "admin@corp.com", cpu: 8, mem: 198 },
-  { id: 3, name: "Chrome #003", status: "paused", proxy: "195.144.21.7:8888", account: "test@test.ru", cpu: 0, mem: 134 },
-  { id: 4, name: "Chrome #004", status: "stopped", proxy: "78.46.90.11:1080", account: "bot@service.io", cpu: 0, mem: 0 },
-  { id: 5, name: "Chrome #005", status: "running", proxy: "94.130.55.22:9090", account: "worker@app.ru", cpu: 19, mem: 312 },
-  { id: 6, name: "Chrome #006", status: "error", proxy: "5.180.61.24:3000", account: "sys@domain.net", cpu: 0, mem: 87 },
-];
-
-const mockLogs = [
-  { id: 1, time: "15:52:41", level: "info", browser: "Chrome #001", message: "Сценарий 'Авторизация + парсинг' запущен успешно" },
-  { id: 2, time: "15:51:33", level: "error", browser: "Chrome #006", message: "Ошибка подключения к прокси 5.180.61.24:3000 — таймаут" },
-  { id: 3, time: "15:50:12", level: "warn", browser: "Chrome #003", message: "Браузер переведён в режим паузы (лимит памяти)" },
-  { id: 4, time: "15:49:05", level: "info", browser: "Chrome #005", message: "Шаг 4/9 выполнен: данные успешно извлечены" },
-  { id: 5, time: "15:48:22", level: "error", browser: "Chrome #004", message: "Аккаунт bot@service.io заблокирован на сайте service.io" },
-  { id: 6, time: "15:47:10", level: "info", browser: "Chrome #002", message: "Прокси заменён на резервный: 91.108.4.11:3128" },
-  { id: 7, time: "15:46:58", level: "info", browser: "Chrome #001", message: "Cookie сохранены: 14 записей" },
-  { id: 8, time: "15:45:33", level: "warn", browser: "Chrome #005", message: "CAPTCHA обнаружена, попытка решения..." },
-  { id: 9, time: "15:44:11", level: "info", browser: "Chrome #002", message: "Сценарий 'Мониторинг цен' завершён: 240 позиций" },
-  { id: 10, time: "15:43:02", level: "error", browser: "Chrome #003", message: "Элемент не найден: #submit-btn (шаг 3)" },
-];
-
-const mockProxies = [
-  { id: 1, host: "185.22.11.4", port: 8080, type: "HTTP", country: "RU", status: "active", speed: 45 },
-  { id: 2, host: "91.108.4.11", port: 3128, type: "HTTP", country: "DE", status: "active", speed: 12 },
-  { id: 3, host: "195.144.21.7", port: 8888, type: "SOCKS5", country: "NL", status: "active", speed: 28 },
-  { id: 4, host: "78.46.90.11", port: 1080, type: "SOCKS5", country: "US", status: "error", speed: 0 },
-  { id: 5, host: "94.130.55.22", port: 9090, type: "HTTP", country: "PL", status: "active", speed: 67 },
-  { id: 6, host: "5.180.61.24", port: 3000, type: "HTTP", country: "UA", status: "dead", speed: 0 },
-];
-
-const StatusBadge = ({ status }: { status: string }) => {
-  const map: Record<string, { label: string; cls: string }> = {
-    running: { label: "Работает", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-    paused: { label: "Пауза", cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
-    stopped: { label: "Остановлен", cls: "bg-slate-500/15 text-slate-400 border-slate-500/30" },
-    error: { label: "Ошибка", cls: "bg-red-500/15 text-red-400 border-red-500/30" },
-    active: { label: "Активен", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-    inactive: { label: "Неактивен", cls: "bg-slate-500/15 text-slate-400 border-slate-500/30" },
-    banned: { label: "Заблокирован", cls: "bg-red-500/15 text-red-400 border-red-500/30" },
-    draft: { label: "Черновик", cls: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
-    disabled: { label: "Отключён", cls: "bg-slate-500/15 text-slate-400 border-slate-500/30" },
-    dead: { label: "Недоступен", cls: "bg-red-500/15 text-red-400 border-red-500/30" },
-  };
-  const s = map[status] ?? { label: status, cls: "bg-slate-500/15 text-slate-400" };
-  return <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[11px] font-medium tracking-wide ${s.cls}`}>{s.label}</span>;
-};
-
-const LogBadge = ({ level }: { level: string }) => {
-  const map: Record<string, string> = {
-    info: "text-blue-400",
-    warn: "text-amber-400",
-    error: "text-red-400",
-  };
-  return <span className={`font-mono text-[11px] uppercase font-semibold ${map[level] ?? "text-slate-400"}`}>{level}</span>;
-};
-
-const StatCard = ({ icon, label, value, sub, accent }: { icon: string; label: string; value: string | number; sub?: string; accent?: string }) => (
-  <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-5 flex flex-col gap-3 animate-fade-in">
-    <div className="flex items-center justify-between">
-      <span className="text-[11px] font-medium text-slate-500 uppercase tracking-widest">{label}</span>
-      <div className={`w-8 h-8 rounded flex items-center justify-center ${accent ?? "bg-blue-500/10"}`}>
-        <Icon name={icon} size={16} className="text-blue-400" />
+// ── ConfirmDeleteModal ─────────────────────────────────────────────────────────
+function ConfirmDeleteModal({
+  name,
+  onCancel,
+  onConfirm,
+}: {
+  name: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
+      <div className="bg-[#0e1520] border border-[#1e2837] rounded-xl shadow-2xl w-80 p-5 space-y-4">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded bg-red-600/20 border border-red-600/30 flex items-center justify-center flex-shrink-0">
+            <Icon name="Trash2" size={15} className="text-red-400" />
+          </div>
+          <div>
+            <div className="text-[13px] font-semibold text-slate-100">Удалить "{name}"?</div>
+            <div className="text-[11px] text-slate-500 mt-0.5">Это действие нельзя отменить.</div>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-2 bg-[#0c1017] border border-[#1e2837] rounded text-[13px] text-slate-400 hover:text-slate-200 hover:bg-[#141920] transition-colors"
+          >
+            Отмена
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 py-2 bg-red-600 rounded text-[13px] text-white hover:bg-red-500 transition-colors"
+          >
+            Удалить
+          </button>
+        </div>
       </div>
     </div>
-    <div className="font-ibm text-3xl font-semibold text-slate-100 leading-none">{value}</div>
-    {sub && <div className="text-[12px] text-slate-500">{sub}</div>}
-  </div>
-);
+  );
+}
 
+// ── Main ───────────────────────────────────────────────────────────────────────
 export default function Index() {
   const [section, setSection] = useState<Section>("dashboard");
   const [proxyTab, setProxyTab] = useState(false);
+
+  // Search
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Confirm delete
+  const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; type: string; id: number; name: string } | null>(null);
+
+  // Toast notification
+  const [toast, setToast] = useState<string | null>(null);
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
+
+  // Electron detection
+  const [isElectron] = useState(() => !!getElectronAPI());
+
+  // Live browsers (Electron only)
+  const [liveBrowsers, setLiveBrowsers] = useState<ElectronBrowser[]>([]);
 
   // Accounts state with localStorage persistence
   const [accounts, setAccounts] = useState<Account[]>(() => {
@@ -605,6 +783,38 @@ export default function Index() {
   // Run modal
   const [runModal, setRunModal] = useState<{ open: boolean; scenario?: Scenario }>({ open: false });
 
+  // Proxies state with localStorage persistence
+  const [proxies, setProxies] = useState<Proxy[]>(() => {
+    try {
+      const saved = localStorage.getItem("bc_proxies");
+      return saved ? JSON.parse(saved) : mockProxies;
+    } catch { return mockProxies; }
+  });
+  const [proxyModal, setProxyModal] = useState<{ open: boolean; proxy?: Proxy }>({ open: false });
+
+  // Settings state
+  const [settings, setSettings] = useState<Settings>(() => {
+    try {
+      const saved = localStorage.getItem("bc_settings");
+      return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
+    } catch { return defaultSettings; }
+  });
+
+  // Logs state
+  const [logs, setLogs] = useState(mockLogs);
+  const [logFilter, setLogFilter] = useState<string>("all");
+
+  // Browser states (mock, used when not in Electron)
+  const [browserStates, setBrowserStates] = useState<Record<number, "running" | "paused" | "stopped">>(() => {
+    const init: Record<number, "running" | "paused" | "stopped"> = {};
+    mockBrowsers.forEach(b => {
+      init[b.id] = (b.status === "running" || b.status === "paused" || b.status === "stopped")
+        ? (b.status as "running" | "paused" | "stopped")
+        : "stopped";
+    });
+    return init;
+  });
+
   // Launch browser modal
   const [launchModal, setLaunchModal] = useState(false);
   const [launchUrl, setLaunchUrl] = useState("");
@@ -613,23 +823,91 @@ export default function Index() {
   const [launchError, setLaunchError] = useState("");
   const [launchResult, setLaunchResult] = useState<string | null>(null);
 
-  // Persist accounts
+  // ── Electron: subscribe to live data ──────────────────────────────────────
+  useEffect(() => {
+    const api = getElectronAPI();
+    if (!api) return;
+
+    // Initial browser list
+    api.listBrowsers().then(res => {
+      if (res.ok && res.data) setLiveBrowsers(res.data);
+    });
+
+    // Subscribe to browser status updates
+    const unsubStatus = api.onBrowserStatus((data) => {
+      setLiveBrowsers(prev => {
+        const idx = prev.findIndex(b => b.id === data.id);
+        if (idx === -1) {
+          // Unknown browser — refresh full list
+          api.listBrowsers().then(res => {
+            if (res.ok && res.data) setLiveBrowsers(res.data);
+          });
+          return prev;
+        }
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], ...data };
+        return updated;
+      });
+    });
+
+    // Subscribe to incoming logs
+    const unsubLog = api.onLog((log) => {
+      setLogs(prev =>
+        [{ id: log.id, time: log.time, level: log.level as "info" | "warn" | "error", browser: log.browser, message: log.message }, ...prev].slice(0, 500)
+      );
+    });
+
+    // Poll every 3s for CPU/RAM updates
+    const interval = setInterval(() => {
+      api.listBrowsers().then(res => {
+        if (res.ok && res.data) setLiveBrowsers(res.data);
+      });
+    }, 3000);
+
+    return () => {
+      unsubStatus();
+      unsubLog();
+      clearInterval(interval);
+    };
+  }, []);
+
+  // ── Electron: pull logs when entering logs section ─────────────────────────
+  useEffect(() => {
+    const api = getElectronAPI();
+    if (!api || section !== "logs") return;
+    api.getLogs().then(res => {
+      if (res.ok && res.data && res.data.length > 0) {
+        setLogs(res.data.map(l => ({
+          id: l.id,
+          time: l.time,
+          level: l.level as "info" | "warn" | "error",
+          browser: l.browser,
+          message: l.message,
+        })));
+      }
+    });
+  }, [section]);
+
+  // ── Persist accounts ───────────────────────────────────────────────────────
   useEffect(() => {
     localStorage.setItem("bc_accounts", JSON.stringify(accounts));
   }, [accounts]);
 
-  // Persist scenarios
+  // ── Persist scenarios ──────────────────────────────────────────────────────
   useEffect(() => {
     localStorage.setItem("bc_scenarios", JSON.stringify(scenarios));
   }, [scenarios]);
 
-  // Account CRUD
+  // ── Persist proxies ────────────────────────────────────────────────────────
+  useEffect(() => {
+    localStorage.setItem("bc_proxies", JSON.stringify(proxies));
+  }, [proxies]);
+
+  // ── Account CRUD ───────────────────────────────────────────────────────────
   const saveAccount = (data: Omit<Account, "id" | "lastLogin">) => {
     if (accountModal.account) {
       setAccounts(prev => prev.map(a =>
-        a.id === accountModal.account!.id
-          ? { ...a, ...data }
-          : a
+        a.id === accountModal.account!.id ? { ...a, ...data } : a
       ));
     } else {
       const now = new Date();
@@ -643,13 +921,11 @@ export default function Index() {
     setAccounts(prev => prev.filter(a => a.id !== id));
   };
 
-  // Scenario CRUD
+  // ── Scenario CRUD ──────────────────────────────────────────────────────────
   const saveScenario = (name: string, steps: ScenarioStep[]) => {
     if (scenarioModal.scenario) {
       setScenarios(prev => prev.map(s =>
-        s.id === scenarioModal.scenario!.id
-          ? { ...s, name, steps }
-          : s
+        s.id === scenarioModal.scenario!.id ? { ...s, name, steps } : s
       ));
     } else {
       const newScenario: Scenario = {
@@ -669,22 +945,110 @@ export default function Index() {
     setScenarios(prev => prev.filter(s => s.id !== id));
   };
 
+  // ── Proxy CRUD ─────────────────────────────────────────────────────────────
+  const saveProxy = (data: Omit<Proxy, "id" | "status" | "speed">) => {
+    if (proxyModal.proxy) {
+      setProxies(prev => prev.map(p =>
+        p.id === proxyModal.proxy!.id ? { ...p, ...data } : p
+      ));
+    } else {
+      setProxies(prev => [...prev, { id: Date.now(), status: "inactive", speed: 0, ...data }]);
+    }
+    setProxyModal({ open: false });
+  };
+
+  const deleteProxy = (id: number) => {
+    setProxies(prev => prev.filter(p => p.id !== id));
+  };
+
+  const refreshProxy = (id: number) => {
+    setProxies(prev => prev.map(p =>
+      p.id === id ? { ...p, speed: Math.floor(Math.random() * 450) + 50, status: "active" } : p
+    ));
+  };
+
+  // ── Browser controls ───────────────────────────────────────────────────────
+  const setBrowserStatus = (id: number, status: "running" | "paused" | "stopped") => {
+    const api = getElectronAPI();
+    if (api) {
+      if (status === "running") {
+        api.resumeBrowser(id);
+      } else if (status === "paused") {
+        api.pauseBrowser(id);
+      } else {
+        api.closeBrowser(id).then(() => {
+          setLiveBrowsers(prev => prev.filter(lb => lb.id !== id));
+        });
+      }
+    } else {
+      setBrowserStates(prev => ({ ...prev, [id]: status }));
+    }
+  };
+
+  const runAllBrowsers = () => {
+    const api = getElectronAPI();
+    if (api) {
+      liveBrowsers.forEach(b => {
+        if (b.status !== "running") api.resumeBrowser(b.id);
+      });
+    } else {
+      setBrowserStates(prev => {
+        const next = { ...prev };
+        mockBrowsers.forEach(b => { next[b.id] = "running"; });
+        return next;
+      });
+    }
+  };
+
+  // ── Settings ───────────────────────────────────────────────────────────────
+  const saveSettings = () => {
+    localStorage.setItem("bc_settings", JSON.stringify(settings));
+    showToast("Сохранено");
+  };
+
+  // ── Log export ─────────────────────────────────────────────────────────────
+  const exportLogs = () => {
+    const filtered = logFilter === "all" ? logs : logs.filter(l => l.level === logFilter);
+    const blob = new Blob(
+      [filtered.map(l => `[${l.time}] [${l.level.toUpperCase()}] ${l.browser}: ${l.message}`).join("\n")],
+      { type: "text/plain" }
+    );
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `logs-${Date.now()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const clearLogs = () => {
+    const api = getElectronAPI();
+    if (api) {
+      api.clearLogs().then(() => setLogs([]));
+    } else {
+      setLogs([]);
+    }
+  };
+
+  // ── Launch browser ─────────────────────────────────────────────────────────
   async function handleLaunch() {
     if (!launchUrl.trim()) { setLaunchError("Укажи URL сайта"); return; }
     setLaunchLoading(true);
     setLaunchError("");
     setLaunchResult(null);
     try {
-      const eAPI = typeof window !== "undefined"
-        ? (window as Record<string, unknown>).electronAPI as { launchBrowser?: (opts: { url: string; proxy?: string }) => Promise<{ ok: boolean; error?: string; data?: { id: number; url: string } }> } | undefined
-        : undefined;
-      if (!eAPI?.launchBrowser) throw new Error("Запуск доступен только в desktop-приложении");
-      const res = await eAPI.launchBrowser({
+      const api = getElectronAPI();
+      if (!api?.launchBrowser) throw new Error("Запуск доступен только в desktop-приложении");
+      const res = await api.launchBrowser({
         url: launchUrl.trim(),
         proxy: launchProxy.trim() || undefined,
+        settings,
       });
       if (!res.ok) throw new Error(res.error);
       setLaunchResult(`Браузер #${res.data?.id} запущен → ${res.data?.url}`);
+      // Refresh live list
+      const listRes = await api.listBrowsers();
+      if (listRes.ok && listRes.data) setLiveBrowsers(listRes.data);
       setLaunchUrl("");
       setLaunchProxy("");
     } catch (e) {
@@ -694,6 +1058,7 @@ export default function Index() {
     }
   }
 
+  // ── Nav ────────────────────────────────────────────────────────────────────
   const nav: { id: Section; icon: string; label: string }[] = [
     { id: "dashboard", icon: "LayoutDashboard", label: "Дашборд" },
     { id: "browsers", icon: "Monitor", label: "Браузеры" },
@@ -703,10 +1068,72 @@ export default function Index() {
     { id: "settings", icon: "Settings", label: "Настройки" },
   ];
 
-  const running = mockBrowsers.filter(b => b.status === "running").length;
+  // ── Derived values ─────────────────────────────────────────────────────────
+  const running = isElectron
+    ? liveBrowsers.filter(b => b.status === "running").length
+    : Object.values(browserStates).filter(s => s === "running").length;
+
+  // Which browser list to display
+  const displayBrowsers = isElectron
+    ? liveBrowsers.map(b => ({
+        id: b.id,
+        name: `Browser #${b.id}`,
+        status: b.status,
+        proxy: b.proxy ?? "—",
+        account: b.account ?? "—",
+        cpu: b.cpu,
+        mem: b.mem,
+        currentStep: b.currentStep,
+        totalSteps: b.totalSteps,
+      }))
+    : mockBrowsers.map(b => ({
+        ...b,
+        currentStep: 0,
+        totalSteps: 0,
+      }));
+
+  // Filtered data based on search query
+  const q = searchQuery.toLowerCase();
+  const filteredAccounts = accounts.filter(a =>
+    !q || a.login.toLowerCase().includes(q) || a.site.toLowerCase().includes(q)
+  );
+  const filteredScenarios = scenarios.filter(s =>
+    !q || s.name.toLowerCase().includes(q)
+  );
+  const filteredBrowsers = displayBrowsers.filter(b =>
+    !q || b.name.toLowerCase().includes(q) || b.account.toLowerCase().includes(q)
+  );
+  const filteredLogs = (logFilter === "all" ? logs : logs.filter(l => l.level === logFilter)).filter(l =>
+    !q || l.message.toLowerCase().includes(q) || l.browser.toLowerCase().includes(q)
+  );
+
+  const inputCls = "bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors";
 
   return (
     <div className="flex h-screen bg-[#0c1017] font-ibm text-slate-300 overflow-hidden">
+
+      {/* Toast */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-[100] px-4 py-2.5 bg-emerald-600 rounded-lg shadow-xl text-[13px] text-white font-medium animate-fade-in flex items-center gap-2">
+          <Icon name="CheckCircle" size={14} />
+          {toast}
+        </div>
+      )}
+
+      {/* Confirm Delete Modal */}
+      {confirmDelete?.open && (
+        <ConfirmDeleteModal
+          name={confirmDelete.name}
+          onCancel={() => setConfirmDelete(null)}
+          onConfirm={() => {
+            if (confirmDelete.type === "account") deleteAccount(confirmDelete.id);
+            else if (confirmDelete.type === "scenario") deleteScenario(confirmDelete.id);
+            else if (confirmDelete.type === "proxy") deleteProxy(confirmDelete.id);
+            setConfirmDelete(null);
+          }}
+        />
+      )}
+
       {/* Sidebar */}
       <aside className="w-56 flex-shrink-0 bg-[#0e1520] border-r border-[#1a2333] flex flex-col">
         <div className="px-5 py-5 border-b border-[#1a2333]">
@@ -757,7 +1184,12 @@ export default function Index() {
           <div className="flex-1" />
           <div className="flex items-center gap-1 bg-[#141920] border border-[#1e2837] rounded px-3 py-1.5">
             <Icon name="Search" size={13} className="text-slate-500" />
-            <input className="bg-transparent text-[12px] text-slate-300 placeholder-slate-600 outline-none w-40" placeholder="Поиск..." />
+            <input
+              className="bg-transparent text-[12px] text-slate-300 placeholder-slate-600 outline-none w-40"
+              placeholder="Поиск..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
           </div>
           <button className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1a2333] text-slate-400 hover:text-slate-200 transition-colors">
             <Icon name="Bell" size={15} />
@@ -772,7 +1204,12 @@ export default function Index() {
           {section === "dashboard" && (
             <div className="space-y-6 animate-fade-in">
               <div className="grid grid-cols-4 gap-4">
-                <StatCard icon="Monitor" label="Всего браузеров" value={mockBrowsers.length} sub="6 зарегистрировано" />
+                <StatCard
+                  icon="Monitor"
+                  label="Всего браузеров"
+                  value={isElectron ? liveBrowsers.length : mockBrowsers.length}
+                  sub={`${isElectron ? liveBrowsers.filter(b => b.status === "running").length : running} активных`}
+                />
                 <StatCard icon="Zap" label="Активных" value={running} sub="Прямо сейчас" accent="bg-emerald-500/10" />
                 <StatCard icon="Users" label="Аккаунтов" value={accounts.length} sub={`${accounts.filter(a => a.status === "active").length} активных`} />
                 <StatCard icon="Workflow" label="Сценариев" value={scenarios.length} sub={`${scenarios.filter(s => s.status === "active").length} активных`} />
@@ -782,41 +1219,72 @@ export default function Index() {
                 <div className="col-span-2 bg-[#141920] border border-[#1e2837] rounded-lg p-5">
                   <div className="text-[12px] font-medium text-slate-500 uppercase tracking-widest mb-4">Статус браузеров</div>
                   <div className="space-y-3">
-                    {mockBrowsers.map(b => (
+                    {(isElectron ? liveBrowsers : mockBrowsers).slice(0, 6).map(b => (
                       <div key={b.id} className="flex items-center gap-4">
-                        <div className="text-[12px] text-slate-300 w-28 font-mono">{b.name}</div>
-                        <StatusBadge status={b.status} />
-                        <div className="flex-1 bg-[#1a2333] rounded-full h-1.5">
-                          <div className="bg-blue-500 h-1.5 rounded-full transition-all" style={{ width: `${b.cpu * 3}%` }} />
+                        <div className="text-[12px] text-slate-300 w-28 font-mono">
+                          {isElectron ? `Browser #${b.id}` : (b as typeof mockBrowsers[0]).name}
                         </div>
-                        <div className="text-[11px] text-slate-500 w-16 text-right font-mono">{b.cpu}% CPU</div>
-                        <div className="text-[11px] text-slate-500 w-16 text-right font-mono">{b.mem > 0 ? `${b.mem}MB` : "—"}</div>
+                        <StatusBadge status={isElectron ? b.status : (browserStates[b.id] ?? b.status)} />
+                        <div className="flex-1 bg-[#1a2333] rounded-full h-1.5">
+                          <div className="bg-blue-500 h-1.5 rounded-full transition-all" style={{ width: `${Math.min(b.cpu * 3, 100)}%` }} />
+                        </div>
+                        <div className="text-[11px] font-mono text-slate-500 w-16 text-right">{b.cpu}% CPU</div>
                       </div>
                     ))}
+                    {isElectron && liveBrowsers.length === 0 && (
+                      <div className="text-[12px] text-slate-600 text-center py-4">Нет запущенных браузеров</div>
+                    )}
                   </div>
                 </div>
 
                 <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-5">
                   <div className="text-[12px] font-medium text-slate-500 uppercase tracking-widest mb-4">Последние события</div>
                   <div className="space-y-3">
-                    {mockLogs.slice(0, 6).map(l => (
-                      <div key={l.id} className="flex flex-col gap-0.5">
-                        <div className="flex items-center gap-2">
-                          <LogBadge level={l.level} />
-                          <span className="text-[10px] text-slate-600 font-mono">{l.time}</span>
+                    {logs.slice(0, 5).map(l => (
+                      <div key={l.id} className="flex items-start gap-2.5">
+                        <LogBadge level={l.level} />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[11px] text-slate-400 truncate">{l.message}</div>
+                          <div className="text-[10px] text-slate-600 mt-0.5 font-mono">{l.time} · {l.browser}</div>
                         </div>
-                        <div className="text-[11px] text-slate-400 leading-tight pl-0">{l.message}</div>
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-4">
-                <StatCard icon="ShieldCheck" label="Прокси активных" value="5/6" sub="1 недоступен" accent="bg-amber-500/10" />
-                <StatCard icon="AlertTriangle" label="Ошибок за 24ч" value={3} sub="Chrome #006, #004, #003" accent="bg-red-500/10" />
-                <StatCard icon="CheckCircle" label="Задач выполнено" value={142} sub="За сегодня" accent="bg-emerald-500/10" />
-                <StatCard icon="Clock" label="Аптайм" value="14:27:03" sub="С последнего рестарта" />
+              <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-5">
+                <div className="text-[12px] font-medium text-slate-500 uppercase tracking-widest mb-4">Быстрые действия</div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setLaunchModal(true)}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 rounded text-[13px] text-white hover:bg-blue-500 transition-colors"
+                  >
+                    <Icon name="Plus" size={14} />
+                    Запустить браузер
+                  </button>
+                  <button
+                    onClick={() => setAccountModal({ open: true })}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-[#141920] border border-[#1e2837] rounded text-[13px] text-slate-300 hover:bg-[#1a2333] transition-colors"
+                  >
+                    <Icon name="UserPlus" size={14} />
+                    Добавить аккаунт
+                  </button>
+                  <button
+                    onClick={() => setScenarioModal({ open: true })}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-[#141920] border border-[#1e2837] rounded text-[13px] text-slate-300 hover:bg-[#1a2333] transition-colors"
+                  >
+                    <Icon name="Workflow" size={14} />
+                    Создать сценарий
+                  </button>
+                  <button
+                    onClick={() => setSection("logs")}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-[#141920] border border-[#1e2837] rounded text-[13px] text-slate-300 hover:bg-[#1a2333] transition-colors"
+                  >
+                    <Icon name="ScrollText" size={14} />
+                    Просмотр логов
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -824,19 +1292,23 @@ export default function Index() {
           {/* BROWSERS */}
           {section === "browsers" && (
             <div className="space-y-4 animate-fade-in">
-              <div className="flex items-center justify-between">
-                <div className="text-[12px] text-slate-500">{mockBrowsers.length} браузеров · {running} активных</div>
-                <div className="flex gap-2">
-                  <button className="flex items-center gap-2 px-3 py-1.5 bg-[#141920] border border-[#1e2837] rounded text-[12px] text-slate-300 hover:bg-[#1a2333] transition-colors">
-                    <Icon name="Play" size={12} />Запустить все
-                  </button>
-                  <button
-                    onClick={() => { setLaunchModal(true); setLaunchError(""); setLaunchResult(null); }}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 transition-colors"
-                  >
-                    <Icon name="Plus" size={12} />Запустить браузер
-                  </button>
-                </div>
+              <div className="flex items-center gap-3">
+                <div className="text-[12px] text-slate-500">{filteredBrowsers.length} браузеров</div>
+                <div className="flex-1" />
+                <button
+                  onClick={runAllBrowsers}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 rounded text-[12px] text-white hover:bg-emerald-500 transition-colors"
+                >
+                  <Icon name="Play" size={12} />
+                  Запустить все
+                </button>
+                <button
+                  onClick={() => setLaunchModal(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 transition-colors"
+                >
+                  <Icon name="Plus" size={12} />
+                  Новый браузер
+                </button>
               </div>
 
               <div className="bg-[#141920] border border-[#1e2837] rounded-lg overflow-hidden">
@@ -849,32 +1321,68 @@ export default function Index() {
                     </tr>
                   </thead>
                   <tbody>
-                    {mockBrowsers.map((b, i) => (
-                      <tr key={b.id} className={`border-b border-[#1a2333] hover:bg-[#1a2333]/50 transition-colors ${i === mockBrowsers.length - 1 ? "border-b-0" : ""}`}>
-                        <td className="px-4 py-3 font-mono text-[12px] text-slate-200">{b.name}</td>
-                        <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
-                        <td className="px-4 py-3 font-mono text-[12px] text-slate-400">{b.proxy}</td>
-                        <td className="px-4 py-3 text-[12px] text-slate-400">{b.account}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-16 bg-[#1a2333] rounded-full h-1">
-                              <div className="bg-blue-500 h-1 rounded-full" style={{ width: `${b.cpu * 3}%` }} />
+                    {filteredBrowsers.map((b, i) => {
+                      const currentStatus = isElectron
+                        ? b.status
+                        : (browserStates[b.id] ?? b.status);
+                      return (
+                        <tr key={b.id} className={`border-b border-[#1a2333] hover:bg-[#1a2333]/50 transition-colors ${i === filteredBrowsers.length - 1 ? "border-b-0" : ""}`}>
+                          <td className="px-4 py-3 font-mono text-[12px] text-slate-200">
+                            <div>{b.name}</div>
+                            {b.totalSteps > 0 && (
+                              <div className="text-[10px] text-slate-600 font-mono mt-0.5">
+                                {b.currentStep}/{b.totalSteps} шагов
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3"><StatusBadge status={currentStatus} /></td>
+                          <td className="px-4 py-3 font-mono text-[11px] text-slate-400">{b.proxy}</td>
+                          <td className="px-4 py-3 font-mono text-[11px] text-slate-400">{b.account}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-12 bg-[#1a2333] rounded-full h-1">
+                                <div className="bg-blue-500 h-1 rounded-full" style={{ width: `${Math.min(b.cpu * 2, 100)}%` }} />
+                              </div>
+                              <span className="text-[11px] font-mono text-slate-500">{b.cpu}%</span>
                             </div>
-                            <span className="text-[11px] text-slate-500 font-mono">{b.cpu}%</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 font-mono text-[12px] text-slate-400">{b.mem > 0 ? `${b.mem}MB` : "—"}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex gap-1">
-                            <button className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"><Icon name="Play" size={12} /></button>
-                            <button className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"><Icon name="Pause" size={12} /></button>
-                            <button className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-red-400 transition-colors"><Icon name="Square" size={12} /></button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="px-4 py-3 font-mono text-[11px] text-slate-500">{b.mem > 0 ? `${b.mem}MB` : "—"}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => setBrowserStatus(b.id, "running")}
+                                className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${currentStatus === "running" ? "text-emerald-400 bg-emerald-500/10" : "text-slate-500 hover:text-emerald-400 hover:bg-[#1e2837]"}`}
+                                title="Запустить"
+                              >
+                                <Icon name="Play" size={11} />
+                              </button>
+                              <button
+                                onClick={() => setBrowserStatus(b.id, "paused")}
+                                className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${currentStatus === "paused" ? "text-amber-400 bg-amber-500/10" : "text-slate-500 hover:text-amber-400 hover:bg-[#1e2837]"}`}
+                                title="Пауза"
+                              >
+                                <Icon name="Pause" size={11} />
+                              </button>
+                              <button
+                                onClick={() => setBrowserStatus(b.id, "stopped")}
+                                className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${currentStatus === "stopped" ? "text-slate-300 bg-slate-500/10" : "text-slate-500 hover:text-slate-300 hover:bg-[#1e2837]"}`}
+                                title="Остановить"
+                              >
+                                <Icon name="Square" size={11} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
+                {filteredBrowsers.length === 0 && (
+                  <div className="text-center py-10 text-[13px] text-slate-500">
+                    <Icon name="Monitor" size={24} className="mx-auto mb-2 opacity-30" />
+                    Браузеры не найдены
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -882,113 +1390,123 @@ export default function Index() {
           {/* ACCOUNTS */}
           {section === "accounts" && (
             <div className="space-y-4 animate-fade-in">
-              <div className="flex items-center justify-between">
-                <div className="text-[12px] text-slate-500">{accounts.length} аккаунтов</div>
+              <div className="flex items-center gap-3">
+                <div className="text-[12px] text-slate-500">{filteredAccounts.length} аккаунтов</div>
+                <div className="flex-1" />
                 <button
                   onClick={() => setAccountModal({ open: true })}
                   className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 transition-colors"
                 >
-                  <Icon name="Plus" size={12} />Добавить аккаунт
+                  <Icon name="Plus" size={12} />
+                  Добавить аккаунт
                 </button>
               </div>
 
-              {accounts.length === 0 ? (
-                <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-12 text-center">
-                  <Icon name="Users" size={32} className="mx-auto mb-3 text-slate-600" />
-                  <div className="text-[13px] text-slate-500 mb-1">Нет аккаунтов</div>
-                  <div className="text-[11px] text-slate-600">Нажмите «Добавить аккаунт» чтобы создать первый</div>
-                </div>
-              ) : (
-                <div className="bg-[#141920] border border-[#1e2837] rounded-lg overflow-hidden">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-[#1e2837]">
-                        {["Логин", "Пароль", "Сайт", "Прокси", "Статус", "Последний вход", ""].map(h => (
-                          <th key={h} className="text-left px-4 py-3 text-[11px] font-medium text-slate-500 uppercase tracking-widest">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {accounts.map((a, i) => (
-                        <tr key={a.id} className={`border-b border-[#1a2333] hover:bg-[#1a2333]/50 transition-colors ${i === accounts.length - 1 ? "border-b-0" : ""}`}>
-                          <td className="px-4 py-3 text-[12px] text-slate-200">{a.login}</td>
-                          <td className="px-4 py-3 font-mono text-[12px] text-slate-500">••••••••</td>
-                          <td className="px-4 py-3 text-[12px] text-slate-400">{a.site || "—"}</td>
-                          <td className="px-4 py-3 font-mono text-[12px] text-slate-400">{a.proxy || "—"}</td>
-                          <td className="px-4 py-3"><StatusBadge status={a.status} /></td>
-                          <td className="px-4 py-3 font-mono text-[12px] text-slate-500">{a.lastLogin}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex gap-1">
-                              <button
-                                onClick={() => setAccountModal({ open: true, account: a })}
-                                className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"
-                              ><Icon name="Pencil" size={12} /></button>
-                              <button
-                                onClick={() => deleteAccount(a.id)}
-                                className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-red-400 transition-colors"
-                              ><Icon name="Trash2" size={12} /></button>
-                            </div>
-                          </td>
-                        </tr>
+              <div className="bg-[#141920] border border-[#1e2837] rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-[#1e2837]">
+                      {["Логин", "Сайт", "Прокси", "Статус", "Последний вход", ""].map(h => (
+                        <th key={h} className="text-left px-4 py-3 text-[11px] font-medium text-slate-500 uppercase tracking-widest">{h}</th>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredAccounts.map((a, i) => (
+                      <tr key={a.id} className={`border-b border-[#1a2333] hover:bg-[#1a2333]/50 transition-colors ${i === filteredAccounts.length - 1 ? "border-b-0" : ""}`}>
+                        <td className="px-4 py-3 font-mono text-[12px] text-slate-200">{a.login}</td>
+                        <td className="px-4 py-3 text-[12px] text-slate-400">{a.site || "—"}</td>
+                        <td className="px-4 py-3 font-mono text-[11px] text-slate-500">{a.proxy || "—"}</td>
+                        <td className="px-4 py-3"><StatusBadge status={a.status} /></td>
+                        <td className="px-4 py-3 font-mono text-[11px] text-slate-500">{a.lastLogin}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => setAccountModal({ open: true, account: a })}
+                              className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"
+                            >
+                              <Icon name="Pencil" size={11} />
+                            </button>
+                            <button
+                              onClick={() => setConfirmDelete({ open: true, type: "account", id: a.id, name: a.login })}
+                              className="w-6 h-6 flex items-center justify-center rounded hover:bg-red-500/10 text-slate-500 hover:text-red-400 transition-colors"
+                            >
+                              <Icon name="Trash2" size={11} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {filteredAccounts.length === 0 && (
+                  <div className="text-center py-10 text-[13px] text-slate-500">
+                    <Icon name="Users" size={24} className="mx-auto mb-2 opacity-30" />
+                    {accounts.length === 0 ? "Нет аккаунтов. Нажмите «Добавить аккаунт»." : "Аккаунты не найдены"}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
           {/* SCENARIOS */}
           {section === "scenarios" && (
             <div className="space-y-4 animate-fade-in">
-              <div className="flex items-center justify-between">
-                <div className="text-[12px] text-slate-500">{scenarios.length} сценариев</div>
+              <div className="flex items-center gap-3">
+                <div className="text-[12px] text-slate-500">{filteredScenarios.length} сценариев</div>
+                <div className="flex-1" />
                 <button
                   onClick={() => setScenarioModal({ open: true })}
                   className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 transition-colors"
                 >
-                  <Icon name="Plus" size={12} />Создать сценарий
+                  <Icon name="Plus" size={12} />
+                  Новый сценарий
                 </button>
               </div>
 
-              {scenarios.length === 0 ? (
-                <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-12 text-center">
-                  <Icon name="Workflow" size={32} className="mx-auto mb-3 text-slate-600" />
-                  <div className="text-[13px] text-slate-500 mb-1">Нет сценариев</div>
-                  <div className="text-[11px] text-slate-600">Нажмите «Создать сценарий» чтобы добавить первый</div>
+              {filteredScenarios.length === 0 ? (
+                <div className="bg-[#141920] border border-[#1e2837] rounded-lg py-16 text-center">
+                  <Icon name="Workflow" size={32} className="mx-auto mb-3 text-slate-600 opacity-50" />
+                  <div className="text-[14px] text-slate-500 mb-1">
+                    {scenarios.length === 0 ? "Сценариев нет" : "Сценарии не найдены"}
+                  </div>
+                  {scenarios.length === 0 && (
+                    <div className="text-[12px] text-slate-600">Нажмите «Новый сценарий», чтобы создать первый</div>
+                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-3">
-                  {scenarios.map(s => (
-                    <div key={s.id} className="bg-[#141920] border border-[#1e2837] rounded-lg p-4 flex items-center gap-6 hover:border-[#2a3a50] transition-colors">
-                      <div className="w-8 h-8 rounded bg-blue-600/10 border border-blue-600/20 flex items-center justify-center">
-                        <Icon name="Workflow" size={14} className="text-blue-400" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-[13px] font-medium text-slate-200">{s.name}</div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">{s.steps.length} шагов · Последний запуск: {s.lastRun}</div>
-                      </div>
-                      <div className="flex items-center gap-6">
-                        {s.successRate > 0 && (
-                          <div className="text-right">
-                            <div className="text-[12px] font-medium text-emerald-400">{s.successRate}%</div>
-                            <div className="text-[10px] text-slate-600">успешность</div>
-                          </div>
-                        )}
+                  {filteredScenarios.map(s => (
+                    <div key={s.id} className="bg-[#141920] border border-[#1e2837] rounded-lg p-4 hover:border-[#2a3a50] transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded bg-blue-600/10 border border-blue-600/20 flex items-center justify-center flex-shrink-0">
+                          <Icon name="Workflow" size={16} className="text-blue-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13px] font-medium text-slate-100 truncate">{s.name}</div>
+                          <div className="text-[11px] text-slate-500 mt-0.5">{s.steps.length} шагов · Запуск: {s.lastRun}</div>
+                        </div>
                         <StatusBadge status={s.status} />
                         <div className="flex gap-1">
                           <button
                             onClick={() => setRunModal({ open: true, scenario: s })}
-                            className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-emerald-400 transition-colors"
-                          ><Icon name="Play" size={13} /></button>
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-600/10 border border-emerald-600/20 rounded text-[11px] text-emerald-400 hover:bg-emerald-600/20 transition-colors"
+                          >
+                            <Icon name="Play" size={11} />
+                            Запустить
+                          </button>
                           <button
                             onClick={() => setScenarioModal({ open: true, scenario: s })}
                             className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"
-                          ><Icon name="Pencil" size={13} /></button>
+                          >
+                            <Icon name="Pencil" size={12} />
+                          </button>
                           <button
-                            onClick={() => deleteScenario(s.id)}
-                            className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-red-400 transition-colors"
-                          ><Icon name="Trash2" size={13} /></button>
+                            onClick={() => setConfirmDelete({ open: true, type: "scenario", id: s.id, name: s.name })}
+                            className="w-7 h-7 flex items-center justify-center rounded hover:bg-red-500/10 text-slate-500 hover:text-red-400 transition-colors"
+                          >
+                            <Icon name="Trash2" size={12} />
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -1003,17 +1521,36 @@ export default function Index() {
             <div className="space-y-4 animate-fade-in">
               <div className="flex items-center gap-3">
                 <div className="flex gap-1">
-                  {["all", "info", "warn", "error"].map(f => (
-                    <button key={f} className="px-3 py-1.5 rounded text-[11px] font-medium bg-[#141920] border border-[#1e2837] text-slate-400 hover:text-slate-200 hover:border-[#2a3a50] transition-colors capitalize">
-                      {f === "all" ? "Все" : f.toUpperCase()}
+                  {[
+                    { key: "all", label: "Все" },
+                    { key: "info", label: "INFO" },
+                    { key: "warn", label: "WARN" },
+                    { key: "error", label: "ERROR" },
+                  ].map(f => (
+                    <button
+                      key={f.key}
+                      onClick={() => setLogFilter(f.key)}
+                      className={`px-3 py-1.5 rounded text-[11px] font-medium border transition-colors capitalize ${
+                        logFilter === f.key
+                          ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
+                          : "bg-[#141920] border-[#1e2837] text-slate-400 hover:text-slate-200 hover:border-[#2a3a50]"
+                      }`}
+                    >
+                      {f.label}
                     </button>
                   ))}
                 </div>
                 <div className="flex-1" />
-                <button className="flex items-center gap-2 px-3 py-1.5 bg-[#141920] border border-[#1e2837] rounded text-[12px] text-slate-400 hover:bg-[#1a2333] transition-colors">
+                <button
+                  onClick={exportLogs}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-[#141920] border border-[#1e2837] rounded text-[12px] text-slate-400 hover:bg-[#1a2333] transition-colors"
+                >
                   <Icon name="Download" size={12} />Экспорт
                 </button>
-                <button className="flex items-center gap-2 px-3 py-1.5 bg-[#141920] border border-[#1e2837] rounded text-[12px] text-slate-400 hover:bg-[#1a2333] transition-colors">
+                <button
+                  onClick={clearLogs}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-[#141920] border border-[#1e2837] rounded text-[12px] text-slate-400 hover:bg-[#1a2333] transition-colors"
+                >
                   <Icon name="Trash2" size={12} />Очистить
                 </button>
               </div>
@@ -1025,7 +1562,7 @@ export default function Index() {
                   ))}
                 </div>
                 <div className="divide-y divide-[#1a2333]">
-                  {mockLogs.map(l => (
+                  {filteredLogs.map(l => (
                     <div key={l.id} className="flex items-start gap-6 px-4 py-2.5 hover:bg-[#1a2333]/40 transition-colors">
                       <div className="w-20 font-mono text-[11px] text-slate-600 mt-0.5">{l.time}</div>
                       <div className="w-20 mt-0.5"><LogBadge level={l.level} /></div>
@@ -1034,6 +1571,12 @@ export default function Index() {
                     </div>
                   ))}
                 </div>
+                {filteredLogs.length === 0 && (
+                  <div className="text-center py-10 text-[13px] text-slate-500">
+                    <Icon name="ScrollText" size={24} className="mx-auto mb-2 opacity-30" />
+                    {logs.length === 0 ? "Логи очищены" : "Нет записей по выбранному фильтру"}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1058,40 +1601,95 @@ export default function Index() {
               </div>
 
               {!proxyTab && (
-                <div className="grid grid-cols-2 gap-4">
-                  {[
-                    { label: "Макс. параллельных браузеров", value: "16", type: "number" },
-                    { label: "Таймаут подключения (сек)", value: "30", type: "number" },
-                    { label: "Интервал ротации прокси (мин)", value: "15", type: "number" },
-                    { label: "Путь к Chromium", value: "/usr/bin/chromium", type: "text" },
-                    { label: "Директория профилей", value: "~/.browserctrl/profiles", type: "text" },
-                    { label: "Директория логов", value: "~/.browserctrl/logs", type: "text" },
-                  ].map(f => (
-                    <div key={f.label} className="bg-[#141920] border border-[#1e2837] rounded-lg p-4">
-                      <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-2">{f.label}</div>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-4">
+                      <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-2">Макс. параллельных браузеров</div>
                       <input
-                        defaultValue={f.value}
-                        type={f.type}
-                        className="w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors"
+                        value={settings.maxBrowsers}
+                        onChange={e => setSettings(s => ({ ...s, maxBrowsers: Number(e.target.value) }))}
+                        type="number"
+                        className={`w-full ${inputCls}`}
                       />
                     </div>
-                  ))}
+                    <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-4">
+                      <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-2">Таймаут подключения (сек)</div>
+                      <input
+                        value={settings.connectionTimeout}
+                        onChange={e => setSettings(s => ({ ...s, connectionTimeout: Number(e.target.value) }))}
+                        type="number"
+                        className={`w-full ${inputCls}`}
+                      />
+                    </div>
+                    <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-4">
+                      <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-2">Интервал ротации прокси (мин)</div>
+                      <input
+                        value={settings.proxyRotationInterval}
+                        onChange={e => setSettings(s => ({ ...s, proxyRotationInterval: Number(e.target.value) }))}
+                        type="number"
+                        className={`w-full ${inputCls}`}
+                      />
+                    </div>
+                    <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-4">
+                      <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-2">Путь к Chromium</div>
+                      <input
+                        value={settings.chromiumPath}
+                        onChange={e => setSettings(s => ({ ...s, chromiumPath: e.target.value }))}
+                        type="text"
+                        className={`w-full ${inputCls}`}
+                      />
+                    </div>
+                    <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-4">
+                      <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-2">Директория профилей</div>
+                      <input
+                        value={settings.profilesDir}
+                        onChange={e => setSettings(s => ({ ...s, profilesDir: e.target.value }))}
+                        type="text"
+                        className={`w-full ${inputCls}`}
+                      />
+                    </div>
+                    <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-4">
+                      <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-2">Директория логов</div>
+                      <input
+                        value={settings.logsDir}
+                        onChange={e => setSettings(s => ({ ...s, logsDir: e.target.value }))}
+                        type="text"
+                        className={`w-full ${inputCls}`}
+                      />
+                    </div>
 
-                  <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-4">
-                    <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-3">Опции запуска</div>
-                    {[
-                      { label: "Headless режим", checked: true },
-                      { label: "Отключить изображения", checked: false },
-                      { label: "Авто-ротация прокси при ошибке", checked: true },
-                      { label: "Сохранять cookies между сессиями", checked: true },
-                    ].map(opt => (
-                      <label key={opt.label} className="flex items-center gap-3 py-1.5 cursor-pointer group">
-                        <div className={`w-8 h-4 rounded-full transition-colors ${opt.checked ? "bg-blue-600" : "bg-[#1e2837]"}`}>
-                          <div className={`w-3 h-3 rounded-full bg-white mt-0.5 transition-transform ${opt.checked ? "translate-x-4 ml-0.5" : "ml-0.5"}`} />
-                        </div>
-                        <span className="text-[12px] text-slate-400 group-hover:text-slate-300 transition-colors">{opt.label}</span>
-                      </label>
-                    ))}
+                    <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-4 col-span-2">
+                      <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-3">Опции запуска</div>
+                      <div className="grid grid-cols-2 gap-1">
+                        {([
+                          { key: "headless" as const, label: "Headless режим" },
+                          { key: "disableImages" as const, label: "Отключить изображения" },
+                          { key: "autoRotateProxy" as const, label: "Авто-ротация прокси при ошибке" },
+                          { key: "saveCookies" as const, label: "Сохранять cookies между сессиями" },
+                        ] as { key: keyof Settings; label: string }[]).map(opt => (
+                          <button
+                            key={opt.key}
+                            onClick={() => setSettings(s => ({ ...s, [opt.key]: !s[opt.key] }))}
+                            className="flex items-center gap-3 py-1.5 text-left group"
+                          >
+                            <div className={`w-8 h-4 rounded-full transition-colors flex-shrink-0 ${settings[opt.key] ? "bg-blue-600" : "bg-[#1e2837]"}`}>
+                              <div className={`w-3 h-3 rounded-full bg-white mt-0.5 transition-transform ${settings[opt.key] ? "translate-x-4 ml-0.5" : "ml-0.5"}`} />
+                            </div>
+                            <span className="text-[12px] text-slate-400 group-hover:text-slate-300 transition-colors">{opt.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      onClick={saveSettings}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 rounded text-[13px] text-white hover:bg-blue-500 transition-colors"
+                    >
+                      <Icon name="Save" size={14} />
+                      Сохранить настройки
+                    </button>
                   </div>
                 </div>
               )}
@@ -1099,8 +1697,11 @@ export default function Index() {
               {proxyTab && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <div className="text-[12px] text-slate-500">{mockProxies.length} прокси-серверов</div>
-                    <button className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 transition-colors">
+                    <div className="text-[12px] text-slate-500">{proxies.length} прокси-серверов</div>
+                    <button
+                      onClick={() => setProxyModal({ open: true })}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 transition-colors"
+                    >
                       <Icon name="Plus" size={12} />Добавить прокси
                     </button>
                   </div>
@@ -1114,8 +1715,8 @@ export default function Index() {
                         </tr>
                       </thead>
                       <tbody>
-                        {mockProxies.map((p, i) => (
-                          <tr key={p.id} className={`border-b border-[#1a2333] hover:bg-[#1a2333]/50 transition-colors ${i === mockProxies.length - 1 ? "border-b-0" : ""}`}>
+                        {proxies.map((p, i) => (
+                          <tr key={p.id} className={`border-b border-[#1a2333] hover:bg-[#1a2333]/50 transition-colors ${i === proxies.length - 1 ? "border-b-0" : ""}`}>
                             <td className="px-4 py-3 font-mono text-[12px] text-slate-200">{p.host}</td>
                             <td className="px-4 py-3 font-mono text-[12px] text-slate-400">{p.port}</td>
                             <td className="px-4 py-3">
@@ -1127,7 +1728,7 @@ export default function Index() {
                               {p.speed > 0 ? (
                                 <div className="flex items-center gap-2">
                                   <div className="w-16 bg-[#1a2333] rounded-full h-1">
-                                    <div className="bg-emerald-500 h-1 rounded-full" style={{ width: `${Math.min(p.speed, 100)}%` }} />
+                                    <div className="bg-emerald-500 h-1 rounded-full" style={{ width: `${Math.min((p.speed / 500) * 100, 100)}%` }} />
                                   </div>
                                   <span className="text-[11px] font-mono text-slate-500">{p.speed}ms</span>
                                 </div>
@@ -1135,35 +1736,48 @@ export default function Index() {
                             </td>
                             <td className="px-4 py-3">
                               <div className="flex gap-1">
-                                <button className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"><Icon name="RefreshCw" size={11} /></button>
-                                <button className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"><Icon name="Pencil" size={11} /></button>
-                                <button className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-red-400 transition-colors"><Icon name="Trash2" size={11} /></button>
+                                <button
+                                  onClick={() => refreshProxy(p.id)}
+                                  className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-emerald-400 transition-colors"
+                                  title="Проверить"
+                                >
+                                  <Icon name="RefreshCw" size={11} />
+                                </button>
+                                <button
+                                  onClick={() => setProxyModal({ open: true, proxy: p })}
+                                  className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"
+                                  title="Редактировать"
+                                >
+                                  <Icon name="Pencil" size={11} />
+                                </button>
+                                <button
+                                  onClick={() => setConfirmDelete({ open: true, type: "proxy", id: p.id, name: `${p.host}:${p.port}` })}
+                                  className="w-6 h-6 flex items-center justify-center rounded hover:bg-red-500/10 text-slate-500 hover:text-red-400 transition-colors"
+                                  title="Удалить"
+                                >
+                                  <Icon name="Trash2" size={11} />
+                                </button>
                               </div>
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
+                    {proxies.length === 0 && (
+                      <div className="text-center py-10 text-[13px] text-slate-500">
+                        <Icon name="Server" size={24} className="mx-auto mb-2 opacity-30" />
+                        Нет прокси-серверов. Нажмите «Добавить прокси».
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
             </div>
           )}
-
         </div>
       </main>
 
-      {/* Scenario Modal */}
-      {scenarioModal.open && (
-        <ScenarioModal
-          scenarioName={scenarioModal.scenario?.name}
-          initialSteps={scenarioModal.scenario?.steps}
-          onClose={() => setScenarioModal({ open: false })}
-          onSave={saveScenario}
-        />
-      )}
-
-      {/* Account Modal */}
+      {/* Modals */}
       {accountModal.open && (
         <AccountModal
           account={accountModal.account}
@@ -1172,30 +1786,49 @@ export default function Index() {
         />
       )}
 
-      {/* Run Modal */}
+      {scenarioModal.open && (
+        <ScenarioModal
+          onClose={() => setScenarioModal({ open: false })}
+          scenarioName={scenarioModal.scenario?.name}
+          initialSteps={scenarioModal.scenario?.steps}
+          onSave={saveScenario}
+        />
+      )}
+
       {runModal.open && runModal.scenario && (
         <RunModal
           scenario={runModal.scenario}
           accounts={accounts}
+          settings={settings}
           onClose={() => setRunModal({ open: false })}
+          setLiveBrowsers={setLiveBrowsers}
+          setScenarios={setScenarios}
+        />
+      )}
+
+      {proxyModal.open && (
+        <ProxyModal
+          proxy={proxyModal.proxy}
+          onClose={() => setProxyModal({ open: false })}
+          onSave={saveProxy}
         />
       )}
 
       {/* Launch Browser Modal */}
       {launchModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#141920] border border-[#1e2837] rounded-xl shadow-2xl w-full max-w-md p-6 space-y-5 animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="bg-[#0e1520] border border-[#1e2837] rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded bg-blue-600/20 border border-blue-600/30 flex items-center justify-center">
-                  <Icon name="Globe" size={16} className="text-blue-400" />
+                  <Icon name="Monitor" size={15} className="text-blue-400" />
                 </div>
-                <div>
-                  <div className="text-[14px] font-semibold text-slate-100">Запустить браузер</div>
-                  <div className="text-[11px] text-slate-500">Откроет Chrome с указанным сайтом</div>
-                </div>
+                <div className="text-[14px] font-semibold text-slate-100">Запустить браузер</div>
               </div>
-              <button onClick={() => setLaunchModal(false)} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1a2333] text-slate-500 hover:text-slate-300 transition-colors">
+              <button
+                onClick={() => { setLaunchModal(false); setLaunchError(""); setLaunchResult(null); }}
+                className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1a2333] text-slate-500 hover:text-slate-300 transition-colors"
+              >
                 <Icon name="X" size={15} />
               </button>
             </div>
