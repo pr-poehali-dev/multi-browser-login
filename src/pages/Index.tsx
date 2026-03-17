@@ -799,6 +799,8 @@ export default function Index() {
             { id: 11, type: "click", label: "Поставить галочку 16.03", params: { selector: "input[type='checkbox'][data-date='16.03'], tr:has-text('16.03') input[type='checkbox'], .date-16 input[type='checkbox']", timeout: "5000" } },
             { id: 12, type: "type", label: "Ввести 2222 в Stripchat online 16.03", params: { selector: "input[name*='stripchat'][data-date*='16'], tr:has-text('16.03') input[name*='stripchat'], .stripchat-16 input", value: "2222" } },
             { id: 13, type: "click", label: "Сохранить", params: { selector: "button[type='submit'], .btn-save, button:has-text('Сохранить')", timeout: "3000" } },
+            { id: 14, type: "wait", label: "Ждать сохранения", params: { ms: "1500" } },
+            { id: 15, type: "screenshot", label: "Скриншот результата", params: { name: "mba_finance_16_03.png" } },
           ],
           status: "active",
           lastRun: "—",
