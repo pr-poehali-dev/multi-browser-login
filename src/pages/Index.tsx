@@ -52,6 +52,7 @@ interface Settings {
   disableImages: boolean;
   autoRotateProxy: boolean;
   saveCookies: boolean;
+  fingerprintMasking: boolean;
 }
 
 interface ElectronBrowser {
@@ -98,6 +99,7 @@ const defaultSettings: Settings = {
   disableImages: false,
   autoRotateProxy: true,
   saveCookies: true,
+  fingerprintMasking: true,
 };
 
 const STEP_TYPES: { type: StepType; icon: string; label: string; color: string; fields: { key: string; label: string; placeholder: string }[] }[] = [
@@ -1756,6 +1758,7 @@ export default function Index() {
                           { key: "disableImages" as const, label: "Отключить изображения" },
                           { key: "autoRotateProxy" as const, label: "Авто-ротация прокси при ошибке" },
                           { key: "saveCookies" as const, label: "Сохранять cookies между сессиями" },
+                          { key: "fingerprintMasking" as const, label: "Маскировка цифрового отпечатка" },
                         ] as { key: keyof Settings; label: string }[]).map(opt => (
                           <button
                             key={opt.key}
