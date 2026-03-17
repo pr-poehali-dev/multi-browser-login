@@ -1,0 +1,50 @@
+{
+  "name": "browserctrl",
+  "version": "1.0.0",
+  "description": "Desktop browser automation tool",
+  "main": "electron.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "build": "vite build && electron-builder",
+    "dist:mac": "vite build && electron-builder --mac",
+    "dist:win": "vite build && electron-builder --win",
+    "dist:linux": "vite build && electron-builder --linux"
+  },
+  "dependencies": {
+    "puppeteer-core": "^22.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "electron": "^29.0.0",
+    "electron-builder": "^24.9.1",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "dev.poehali.browserctrl",
+    "productName": "BrowserCtrl",
+    "directories": {
+      "buildResources": ".."
+    },
+    "files": [
+      "electron.js",
+      "preload.js",
+      "browser-manager.js",
+      "node_modules/**",
+      "../dist/**"
+    ],
+    "mac": {
+      "icon": "../icon.icns",
+      "category": "public.app-category.productivity",
+      "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }]
+    },
+    "win": {
+      "icon": "../icon.ico",
+      "target": [{ "target": "nsis", "arch": ["x64"] }]
+    },
+    "linux": {
+      "icon": "../icon.png",
+      "target": [{ "target": "AppImage", "arch": ["x64"] }]
+    }
+  }
+}
