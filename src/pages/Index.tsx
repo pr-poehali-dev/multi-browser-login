@@ -777,7 +777,37 @@ export default function Index() {
 
   // Scenarios state with localStorage persistence
   const [scenarios, setScenarios] = useState<Scenario[]>(() => {
-    try { return JSON.parse(localStorage.getItem("bc_scenarios") || "[]"); } catch { return []; }
+    try {
+      const saved = JSON.parse(localStorage.getItem("bc_scenarios") || "[]");
+      if (saved.length > 0) return saved;
+      // Сценарий по умолчанию
+      const defaults: Scenario[] = [
+        {
+          id: 1,
+          name: "MBA Agency — финансы 16.03",
+          steps: [
+            { id: 1, type: "navigate", label: "Открыть сайт", params: { url: "https://mba-agency.ru/" } },
+            { id: 2, type: "click", label: "Кликнуть «Войти»", params: { selector: "a[href*='login'], a[href*='signin'], .login-btn, [data-action='login']", timeout: "5000" } },
+            { id: 3, type: "type", label: "Ввести логин", params: { selector: "input[type='email'], input[name='email'], input[name='login'], input[name='username']", value: "GenadP@mba.com" } },
+            { id: 4, type: "type", label: "Ввести пароль", params: { selector: "input[type='password']", value: "GenaPonyazhin890" } },
+            { id: 5, type: "click", label: "Нажать «Войти»", params: { selector: "button[type='submit'], input[type='submit'], .btn-login, .login-submit", timeout: "3000" } },
+            { id: 6, type: "wait", label: "Ждать загрузки", params: { ms: "2000" } },
+            { id: 7, type: "click", label: "Перейти в раздел «Модели»", params: { selector: "a[href*='model'], nav a:has-text('Модели'), .menu-item-models", timeout: "5000" } },
+            { id: 8, type: "wait", label: "Ждать загрузки", params: { ms: "1500" } },
+            { id: 9, type: "click", label: "Перейти в «Финансы моделей»", params: { selector: "a[href*='financ'], a[href*='finance'], a[href*='money'], a:has-text('Финанс')", timeout: "5000" } },
+            { id: 10, type: "wait", label: "Ждать загрузки", params: { ms: "1500" } },
+            { id: 11, type: "click", label: "Поставить галочку 16.03", params: { selector: "input[type='checkbox'][data-date='16.03'], tr:has-text('16.03') input[type='checkbox'], .date-16 input[type='checkbox']", timeout: "5000" } },
+            { id: 12, type: "type", label: "Ввести 2222 в Stripchat online 16.03", params: { selector: "input[name*='stripchat'][data-date*='16'], tr:has-text('16.03') input[name*='stripchat'], .stripchat-16 input", value: "2222" } },
+            { id: 13, type: "click", label: "Сохранить", params: { selector: "button[type='submit'], .btn-save, button:has-text('Сохранить')", timeout: "3000" } },
+          ],
+          status: "active",
+          lastRun: "—",
+          successRate: 0,
+        },
+      ];
+      localStorage.setItem("bc_scenarios", JSON.stringify(defaults));
+      return defaults;
+    } catch { return []; }
   });
   const [scenarioModal, setScenarioModal] = useState<{ open: boolean; scenario?: Scenario }>({ open: false });
 
