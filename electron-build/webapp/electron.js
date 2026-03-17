@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const bm = require('./browser-manager');
 
@@ -107,6 +107,18 @@ ipcMain.handle('browser:clearLogs', () => {
   } catch (err) {
     return { ok: false, error: err.message };
   }
+});
+
+ipcMain.handle('dialog:openFile', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Выбери исполняемый файл Chrome / Chromium',
+    properties: ['openFile'],
+    filters: process.platform === 'win32'
+      ? [{ name: 'Executable', extensions: ['exe'] }]
+      : [{ name: 'All Files', extensions: ['*'] }],
+  });
+  if (result.canceled || result.filePaths.length === 0) return { ok: false };
+  return { ok: true, path: result.filePaths[0] };
 });
 
 // Жизненный цикл приложения

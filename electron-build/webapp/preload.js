@@ -21,4 +21,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('browser:log', handler);
     return () => ipcRenderer.removeListener('browser:log', handler);
   },
+
+  openFileDialog: () => ipcRenderer.invoke('dialog:openFile'),
 });

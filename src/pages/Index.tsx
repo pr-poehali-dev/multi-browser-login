@@ -78,6 +78,7 @@ interface ElectronAPI {
   clearLogs: () => Promise<{ ok: boolean }>;
   onBrowserStatus: (cb: (data: { id: number; status?: string; currentStep?: number; totalSteps?: number }) => void) => () => void;
   onLog: (cb: (data: { id: number; time: string; level: string; browser: string; message: string }) => void) => () => void;
+  openFileDialog: () => Promise<{ ok: boolean; path?: string }>;
 }
 
 function getElectronAPI(): ElectronAPI | undefined {
@@ -1641,6 +1642,22 @@ export default function Index() {
                           type="text"
                           className={`flex-1 ${inputCls}`}
                         />
+                        <button
+                          onClick={async () => {
+                            const api = getElectronAPI();
+                            if (!api?.openFileDialog) return;
+                            const res = await api.openFileDialog();
+                            if (res.ok && res.path) {
+                              setSettings(s => ({ ...s, chromiumPath: res.path }));
+                              setChromeCheckStatus("idle");
+                              setChromeCheckMsg("");
+                            }
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1e2837] border border-[#2a3a50] rounded text-[12px] text-slate-300 hover:bg-[#253347] hover:text-white transition-colors"
+                        >
+                          <Icon name="FolderOpen" size={13} />
+                          Выбрать
+                        </button>
                         <button
                           onClick={async () => {
                             setChromeCheckStatus("checking");
