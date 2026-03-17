@@ -799,6 +799,8 @@ export default function Index() {
       return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
     } catch { return defaultSettings; }
   });
+  const [chromeCheckStatus, setChromeCheckStatus] = useState<"idle" | "checking" | "ok" | "error">("idle");
+  const [chromeCheckMsg, setChromeCheckMsg] = useState("");
 
   // Logs state
   const [logs, setLogs] = useState(mockLogs);
@@ -1632,12 +1634,51 @@ export default function Index() {
                     </div>
                     <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-4">
                       <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-2">Путь к Chromium</div>
-                      <input
-                        value={settings.chromiumPath}
-                        onChange={e => setSettings(s => ({ ...s, chromiumPath: e.target.value }))}
-                        type="text"
-                        className={`w-full ${inputCls}`}
-                      />
+                      <div className="flex gap-2">
+                        <input
+                          value={settings.chromiumPath}
+                          onChange={e => setSettings(s => ({ ...s, chromiumPath: e.target.value }))}
+                          type="text"
+                          className={`flex-1 ${inputCls}`}
+                        />
+                        <button
+                          onClick={async () => {
+                            setChromeCheckStatus("checking");
+                            setChromeCheckMsg("");
+                            const api = getElectronAPI();
+                            if (!api) {
+                              setChromeCheckStatus("error");
+                              setChromeCheckMsg("Доступно только в desktop-приложении");
+                              return;
+                            }
+                            try {
+                              const res = await api.launchBrowser({ url: "about:blank", settings: { ...settings, headless: true } });
+                              if (res.ok && res.data) {
+                                await api.closeBrowser(res.data.id);
+                                setChromeCheckStatus("ok");
+                                setChromeCheckMsg("Chrome найден и работает");
+                              } else {
+                                setChromeCheckStatus("error");
+                                setChromeCheckMsg(res.error || "Не удалось запустить");
+                              }
+                            } catch (e: unknown) {
+                              setChromeCheckStatus("error");
+                              setChromeCheckMsg(e instanceof Error ? e.message : "Ошибка");
+                            }
+                          }}
+                          disabled={chromeCheckStatus === "checking"}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1e2837] border border-[#2a3a50] rounded text-[12px] text-slate-300 hover:bg-[#253347] hover:text-white transition-colors disabled:opacity-50"
+                        >
+                          <Icon name={chromeCheckStatus === "checking" ? "Loader" : "PlayCircle"} size={13} className={chromeCheckStatus === "checking" ? "animate-spin" : ""} />
+                          Проверить
+                        </button>
+                      </div>
+                      {chromeCheckMsg && (
+                        <div className={`mt-2 flex items-center gap-1.5 text-[12px] ${chromeCheckStatus === "ok" ? "text-emerald-400" : "text-red-400"}`}>
+                          <Icon name={chromeCheckStatus === "ok" ? "CheckCircle" : "XCircle"} size={13} />
+                          {chromeCheckMsg}
+                        </div>
+                      )}
                     </div>
                     <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-4">
                       <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-2">Директория профилей</div>
