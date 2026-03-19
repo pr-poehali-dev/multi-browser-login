@@ -288,6 +288,15 @@ async function runSteps(id, page, steps, settings = {}) {
       addLog(id, 'warn', 'Сценарий остановлен условием');
       return;
     }
+    if (result === 'skip') {
+      addLog(id, 'info', `Шаг ${i + 1} пропущен (условие skip)`);
+      continue;
+    }
+    if (result === 'retry') {
+      addLog(id, 'warn', `Повтор с шага 1 (условие retry)`);
+      i = -1;
+      continue;
+    }
   }
 
   updateStatus(id, { status: 'done', currentStep: steps.length });

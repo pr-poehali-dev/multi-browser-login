@@ -371,6 +371,7 @@ function findChromePath(customPath) {
 
 /**
  * Выполнить один шаг сценария на странице
+ * Возвращает управляющую команду: undefined | 'skip' | 'stop' | { retry: stepIndex }
  */
 async function executeStep(page, step, browserId) {
   const { type, params, label } = step
@@ -443,10 +444,22 @@ async function executeStep(page, step, browserId) {
     }
 
     case 'condition': {
-      const found = await page.$(params.selector)
-      const action = params.action || 'skip'
-      addLog(found ? 'warn' : 'info', browserName, `Условие "${params.selector}": ${found ? `найден → ${action}` : 'не найден'}`)
-      if (found && action === 'stop') throw new Error(`Остановлено условием: найден ${params.selector}`)
+      const found = await page.$(params.selector).catch(() => null)
+      const action = (params.action || 'skip').trim().toLowerCase()
+      addLog(found ? 'warn' : 'info', browserName,
+        `Условие "${params.selector}": ${found ? `найден → действие: ${action}` : 'не найден → продолжение'}`)
+      if (found) {
+        if (action === 'stop') {
+          throw new Error(`Остановлено условием: найден ${params.selector}`)
+        }
+        if (action === 'skip') {
+          return 'skip'
+        }
+        if (action === 'retry') {
+          addLog('warn', browserName, `Повтор с шага 1 (условие retry: найден ${params.selector})`)
+          return { retry: 0 }
+        }
+      }
       break
     }
 
@@ -635,7 +648,15 @@ async function runScenarioSteps(id, page, steps) {
     updateBrowserStatus(id, { currentStep: i + 1 })
 
     try {
-      await executeStep(page, steps[i], id)
+      const cmd = await executeStep(page, steps[i], id)
+      if (cmd === 'skip') {
+        addLog('info', browserName, `Шаг ${i + 1} пропущен (условие skip)`)
+        continue
+      }
+      if (cmd && typeof cmd === 'object' && 'retry' in cmd) {
+        i = cmd.retry - 1
+        continue
+      }
     } catch (err) {
       addLog('error', browserName, `Ошибка шага ${i + 1}: ${err.message}`)
       updateBrowserStatus(id, { status: 'error' })
