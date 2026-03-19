@@ -49,31 +49,35 @@ if [ ! -f "$ICON_PATH" ]; then
   echo ""
   echo -e "${YELLOW}▶ Генерирую иконку приложения...${NC}"
 
-  # Скачиваем PNG-логотип с CDN
   PNG_SRC="https://cdn.poehali.dev/projects/b92a8c65-f081-4684-87a0-bfb308c5c2e4/files/0d735473-25d1-47dd-8cce-17327ef9d26e.jpg"
-  TMP_PNG="$SCRIPT_DIR/icon_tmp.png"
+  TMP_JPG="$SCRIPT_DIR/icon_tmp.jpg"
+  TMP_PNG="$SCRIPT_DIR/icon_tmp_1024.png"
 
-  if command -v curl &> /dev/null; then
-    curl -sL "$PNG_SRC" -o "$TMP_PNG"
-  elif command -v wget &> /dev/null; then
-    wget -q "$PNG_SRC" -O "$TMP_PNG"
-  else
-    echo -e "${RED}✗ curl или wget не найден. Установи curl и запусти снова.${NC}"
-    exit 1
-  fi
+  # Скачиваем исходник
+  curl -sL "$PNG_SRC" -o "$TMP_JPG"
 
-  # Создаём iconset
+  # Конвертируем JPG → PNG через sips и масштабируем до 1024
+  sips -s format png "$TMP_JPG" --out "$TMP_PNG" -z 1024 1024 &>/dev/null
+
+  # Создаём iconset со строго правильными именами для iconutil
   ICONSET_DIR="$SCRIPT_DIR/MBABrowser.iconset"
+  rm -rf "$ICONSET_DIR"
   mkdir -p "$ICONSET_DIR"
 
-  for SIZE in 16 32 64 128 256 512; do
-    sips -z $SIZE $SIZE "$TMP_PNG" --out "$ICONSET_DIR/icon_${SIZE}x${SIZE}.png" &>/dev/null
-    DOUBLE=$((SIZE * 2))
-    sips -z $DOUBLE $DOUBLE "$TMP_PNG" --out "$ICONSET_DIR/icon_${SIZE}x${SIZE}@2x.png" &>/dev/null
-  done
+  sips -z 16   16   "$TMP_PNG" --out "$ICONSET_DIR/icon_16x16.png"    &>/dev/null
+  sips -z 32   32   "$TMP_PNG" --out "$ICONSET_DIR/icon_16x16@2x.png" &>/dev/null
+  sips -z 32   32   "$TMP_PNG" --out "$ICONSET_DIR/icon_32x32.png"    &>/dev/null
+  sips -z 64   64   "$TMP_PNG" --out "$ICONSET_DIR/icon_32x32@2x.png" &>/dev/null
+  sips -z 128  128  "$TMP_PNG" --out "$ICONSET_DIR/icon_128x128.png"  &>/dev/null
+  sips -z 256  256  "$TMP_PNG" --out "$ICONSET_DIR/icon_128x128@2x.png" &>/dev/null
+  sips -z 256  256  "$TMP_PNG" --out "$ICONSET_DIR/icon_256x256.png"  &>/dev/null
+  sips -z 512  512  "$TMP_PNG" --out "$ICONSET_DIR/icon_256x256@2x.png" &>/dev/null
+  sips -z 512  512  "$TMP_PNG" --out "$ICONSET_DIR/icon_512x512.png"  &>/dev/null
+  sips -z 1024 1024 "$TMP_PNG" --out "$ICONSET_DIR/icon_512x512@2x.png" &>/dev/null
 
   iconutil -c icns "$ICONSET_DIR" -o "$ICON_PATH"
-  rm -rf "$ICONSET_DIR" "$TMP_PNG"
+
+  rm -rf "$ICONSET_DIR" "$TMP_JPG" "$TMP_PNG"
   echo -e "${GREEN}✓ Иконка создана${NC}"
 else
   echo -e "${GREEN}✓ Иконка найдена${NC}"
