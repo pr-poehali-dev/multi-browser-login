@@ -111,12 +111,25 @@ rm -rf "$WEBAPP_DIR/dist"
 mkdir -p "$WEBAPP_DIR/dist"
 cp -r "$PROJECT_ROOT/dist/." "$WEBAPP_DIR/dist/"
 
-# Electron загружает через file:// — нужны относительные пути
+# Electron загружает через file:// — фиксим пути и убираем скрипты платформы
 INDEX_HTML="$WEBAPP_DIR/dist/index.html"
 if [ -f "$INDEX_HTML" ]; then
+  # Относительные пути для file:// протокола
   sed -i '' 's|src="/assets/|src="./assets/|g' "$INDEX_HTML"
   sed -i '' 's|href="/assets/|href="./assets/|g' "$INDEX_HTML"
-  echo -e "${GREEN}✓ Пути исправлены в index.html${NC}"
+
+  # Убираем скрипты платформы poehali.dev — они не нужны в desktop-приложении
+  # и вызывают 404 при загрузке через file://
+  sed -i '' '/cdn\.poehali\.dev.*\.js/d' "$INDEX_HTML"
+  sed -i '' '/pp-min/d' "$INDEX_HTML"
+  sed -i '' '/telemetry-min/d' "$INDEX_HTML"
+  sed -i '' '/route-min/d' "$INDEX_HTML"
+  sed -i '' '/inspector-min/d' "$INDEX_HTML"
+  sed -i '' '/yandex\.ru\/metrika/d' "$INDEX_HTML"
+  sed -i '' '/mc\.yandex/d' "$INDEX_HTML"
+  sed -i '' '/ym(101/d' "$INDEX_HTML"
+
+  echo -e "${GREEN}✓ index.html подготовлен для Electron${NC}"
 else
   echo -e "${RED}✗ dist/index.html не найден! Сборка React не удалась.${NC}"
   exit 1
