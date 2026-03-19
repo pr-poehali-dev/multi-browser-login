@@ -424,12 +424,45 @@ function ScenarioModal({
                 {activeDef.fields.map(field => (
                   <div key={field.key}>
                     <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">{field.label}</label>
-                    <input
-                      value={active.params[field.key] ?? ""}
-                      onChange={e => updateParam(active.id, field.key, e.target.value)}
-                      placeholder={field.placeholder}
-                      className="w-full bg-[#0a0612] border border-[#2f2445] rounded px-3 py-2 text-[13px] text-slate-200 font-mono outline-none focus:border-violet-500/50 transition-colors placeholder-slate-600"
-                    />
+                    {active.type === "condition" && field.key === "action" ? (
+                      <div className="space-y-2">
+                        {[
+                          { value: "skip", icon: "SkipForward", label: "Пропустить шаг", desc: "Если элемент найден — перейти к следующему шагу", color: "border-amber-500/40 bg-amber-500/10 text-amber-300" },
+                          { value: "stop", icon: "OctagonX", label: "Остановить сценарий", desc: "Если элемент найден — прекратить выполнение", color: "border-red-500/40 bg-red-500/10 text-red-300" },
+                          { value: "retry", icon: "RotateCcw", label: "Повторить с начала", desc: "Если элемент найден — перезапустить сценарий с шага 1", color: "border-violet-500/40 bg-violet-500/10 text-violet-300" },
+                        ].map(opt => {
+                          const selected = (active.params.action || "skip") === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              onClick={() => updateParam(active.id, "action", opt.value)}
+                              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded border text-left transition-all ${
+                                selected
+                                  ? opt.color
+                                  : "border-[#2f2445] bg-[#0a0612] text-slate-400 hover:border-[#3a2855] hover:bg-[#1a1028]"
+                              }`}
+                            >
+                              <Icon name={opt.icon} size={15} className="flex-shrink-0" />
+                              <div>
+                                <div className="text-[12px] font-medium leading-none mb-1">{opt.label}</div>
+                                <div className="text-[11px] opacity-70 leading-snug">{opt.desc}</div>
+                              </div>
+                              {selected && <Icon name="Check" size={13} className="ml-auto flex-shrink-0" />}
+                            </button>
+                          );
+                        })}
+                        <div className="mt-3 px-3 py-2 bg-[#1a1028] border border-[#2f2445] rounded text-[11px] text-slate-500 leading-relaxed">
+                          <span className="text-slate-400 font-medium">Как работает:</span> браузер ищет элемент по CSS-селектору. Если <span className="text-emerald-400">найден</span> — выполняет выбранное действие. Если <span className="text-slate-400">не найден</span> — продолжает выполнение.
+                        </div>
+                      </div>
+                    ) : (
+                      <input
+                        value={active.params[field.key] ?? ""}
+                        onChange={e => updateParam(active.id, field.key, e.target.value)}
+                        placeholder={field.placeholder}
+                        className="w-full bg-[#0a0612] border border-[#2f2445] rounded px-3 py-2 text-[13px] text-slate-200 font-mono outline-none focus:border-violet-500/50 transition-colors placeholder-slate-600"
+                      />
+                    )}
                   </div>
                 ))}
               </div>
