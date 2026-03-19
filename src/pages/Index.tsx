@@ -2132,10 +2132,17 @@ export default function Index() {
                 <div className="w-9 h-9 rounded bg-violet-600/20 border border-violet-600/30 flex items-center justify-center">
                   <Icon name="PackageOpen" size={17} className="text-violet-400" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <div className="text-[15px] font-semibold text-slate-100">Установка MBA Browser</div>
                   <div className="text-[12px] text-slate-500">Инструкция по сборке и установке приложения</div>
                 </div>
+                <button
+                  data-action="download-code"
+                  className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded text-[12px] text-white font-medium transition-colors"
+                >
+                  <Icon name="Download" size={13} />
+                  Скачать код
+                </button>
               </div>
 
               {/* Requirements */}
