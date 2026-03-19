@@ -200,6 +200,51 @@ const StatCard = ({ icon, label, value, sub, accent }: { icon: string; label: st
   </div>
 );
 
+const Pagination = ({ page, total, pageSize, onChange }: { page: number; total: number; pageSize: number; onChange: (p: number) => void }) => {
+  const totalPages = Math.ceil(total / pageSize);
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex items-center justify-between px-4 py-3 border-t border-[#2f2445]">
+      <div className="text-[11px] text-slate-500">
+        {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} из {total}
+      </div>
+      <div className="flex gap-1">
+        <button
+          onClick={() => onChange(page - 1)}
+          disabled={page === 1}
+          className="w-7 h-7 flex items-center justify-center rounded border border-[#2f2445] text-slate-400 hover:bg-[#251a38] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        >
+          <Icon name="ChevronLeft" size={13} />
+        </button>
+        {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+          let p = i + 1;
+          if (totalPages > 5) {
+            if (page <= 3) p = i + 1;
+            else if (page >= totalPages - 2) p = totalPages - 4 + i;
+            else p = page - 2 + i;
+          }
+          return (
+            <button
+              key={p}
+              onClick={() => onChange(p)}
+              className={`w-7 h-7 flex items-center justify-center rounded text-[12px] transition-colors ${p === page ? "bg-violet-600 text-white" : "border border-[#2f2445] text-slate-400 hover:bg-[#251a38]"}`}
+            >
+              {p}
+            </button>
+          );
+        })}
+        <button
+          onClick={() => onChange(page + 1)}
+          disabled={page === totalPages}
+          className="w-7 h-7 flex items-center justify-center rounded border border-[#2f2445] text-slate-400 hover:bg-[#251a38] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        >
+          <Icon name="ChevronRight" size={13} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // ── ScenarioModal ──────────────────────────────────────────────────────────────
 function ScenarioModal({
   onClose,
@@ -852,6 +897,13 @@ export default function Index() {
     return init;
   });
 
+  // Mock CPU/RAM simulation for non-Electron mode
+  const [mockStats, setMockStats] = useState<Record<number, { cpu: number; mem: number }>>(() => {
+    const init: Record<number, { cpu: number; mem: number }> = {};
+    mockBrowsers.forEach(b => { init[b.id] = { cpu: b.cpu, mem: b.mem }; });
+    return init;
+  });
+
   // Launch browser modal
   const [launchModal, setLaunchModal] = useState(false);
   const [launchUrl, setLaunchUrl] = useState("");
@@ -859,6 +911,12 @@ export default function Index() {
   const [launchLoading, setLaunchLoading] = useState(false);
   const [launchError, setLaunchError] = useState("");
   const [launchResult, setLaunchResult] = useState<string | null>(null);
+
+  // Pagination
+  const [accountPage, setAccountPage] = useState(1);
+  const [browserPage, setBrowserPage] = useState(1);
+  const [logPage, setLogPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   // ── Electron: subscribe to live data ──────────────────────────────────────
   useEffect(() => {
@@ -940,6 +998,34 @@ export default function Index() {
     localStorage.setItem("bc_proxies", JSON.stringify(proxies));
   }, [proxies]);
 
+  // ── Reset pagination on search ─────────────────────────────────────────────
+  useEffect(() => { setAccountPage(1); }, [searchQuery]);
+  useEffect(() => { setBrowserPage(1); }, [searchQuery]);
+  useEffect(() => { setLogPage(1); }, [searchQuery, logFilter]);
+
+  // ── Simulate live CPU/RAM in non-Electron mode ─────────────────────────────
+  useEffect(() => {
+    if (isElectron) return;
+    const interval = setInterval(() => {
+      setMockStats(prev => {
+        const next = { ...prev };
+        mockBrowsers.forEach(b => {
+          const state = browserStates[b.id] ?? b.status;
+          if (state === "running") {
+            next[b.id] = {
+              cpu: Math.max(1, Math.min(95, (prev[b.id]?.cpu ?? b.cpu) + (Math.random() * 10 - 5))),
+              mem: Math.max(50, Math.min(600, (prev[b.id]?.mem ?? b.mem) + (Math.random() * 20 - 10))),
+            };
+          } else {
+            next[b.id] = { cpu: 0, mem: prev[b.id]?.mem ?? b.mem };
+          }
+        });
+        return next;
+      });
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [isElectron, browserStates]);
+
   // ── Account CRUD ───────────────────────────────────────────────────────────
   const saveAccount = (data: Omit<Account, "id" | "lastLogin">) => {
     if (accountModal.account) {
@@ -956,6 +1042,40 @@ export default function Index() {
 
   const deleteAccount = (id: number) => {
     setAccounts(prev => prev.filter(a => a.id !== id));
+  };
+
+  const exportAccounts = () => {
+    const header = "login,password,site,proxy,status,lastLogin";
+    const rows = accounts.map(a => `${a.login},${a.password},${a.site},${a.proxy},${a.status},${a.lastLogin}`);
+    const blob = new Blob([header + "\n" + rows.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `accounts-${Date.now()}.csv`; a.click();
+    URL.revokeObjectURL(url);
+    showToast("Аккаунты экспортированы");
+  };
+
+  const importAccounts = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const lines = text.trim().split("\n").slice(1); // skip header
+      const imported: Account[] = lines.map((line, i) => {
+        const [login, password, site, proxy, status] = line.split(",");
+        return {
+          id: Date.now() + i,
+          login: login?.trim() || "",
+          password: password?.trim() || "",
+          site: site?.trim() || "",
+          proxy: proxy?.trim() || "",
+          status: (status?.trim() as "active" | "inactive" | "banned") || "inactive",
+          lastLogin: "—",
+        };
+      }).filter(a => a.login);
+      setAccounts(prev => [...prev, ...imported]);
+      showToast(`Импортировано ${imported.length} аккаунтов`);
+    };
+    reader.readAsText(file);
   };
 
   // ── Scenario CRUD ──────────────────────────────────────────────────────────
@@ -998,10 +1118,58 @@ export default function Index() {
     setProxies(prev => prev.filter(p => p.id !== id));
   };
 
-  const refreshProxy = (id: number) => {
-    setProxies(prev => prev.map(p =>
-      p.id === id ? { ...p, speed: Math.floor(Math.random() * 450) + 50, status: "active" } : p
-    ));
+  const exportProxies = () => {
+    const header = "host,port,type,country";
+    const rows = proxies.map(p => `${p.host},${p.port},${p.type},${p.country}`);
+    const blob = new Blob([header + "\n" + rows.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `proxies-${Date.now()}.csv`; a.click();
+    URL.revokeObjectURL(url);
+    showToast("Прокси экспортированы");
+  };
+
+  const importProxies = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const lines = text.trim().split("\n").slice(1);
+      const imported: Proxy[] = lines.map((line, i) => {
+        const [host, port, type, country] = line.split(",");
+        return {
+          id: Date.now() + i,
+          host: host?.trim() || "",
+          port: parseInt(port?.trim() || "0"),
+          type: (type?.trim() as "HTTP" | "SOCKS5" | "SOCKS4") || "HTTP",
+          country: country?.trim() || "—",
+          status: "inactive" as const,
+          speed: 0,
+        };
+      }).filter(p => p.host && p.port);
+      setProxies(prev => [...prev, ...imported]);
+      showToast(`Импортировано ${imported.length} прокси`);
+    };
+    reader.readAsText(file);
+  };
+
+  const refreshProxy = async (id: number) => {
+    const proxy = proxies.find(p => p.id === id);
+    if (!proxy) return;
+    setProxies(prev => prev.map(p => p.id === id ? { ...p, status: "inactive", speed: 0 } : p));
+    const start = Date.now();
+    try {
+      await fetch(`https://${proxy.host}:${proxy.port}`, {
+        method: "HEAD",
+        mode: "no-cors",
+        signal: AbortSignal.timeout(5000),
+      });
+      const speed = Date.now() - start;
+      setProxies(prev => prev.map(p => p.id === id ? { ...p, status: "active", speed } : p));
+      showToast(`Прокси ${proxy.host}:${proxy.port} — ${speed}мс`);
+    } catch {
+      setProxies(prev => prev.map(p => p.id === id ? { ...p, status: "error", speed: 0 } : p));
+      showToast(`Прокси ${proxy.host}:${proxy.port} недоступен`);
+    }
   };
 
   // ── Browser controls ───────────────────────────────────────────────────────
@@ -1125,6 +1293,8 @@ export default function Index() {
       }))
     : mockBrowsers.map(b => ({
         ...b,
+        cpu: mockStats[b.id]?.cpu ?? b.cpu,
+        mem: mockStats[b.id]?.mem ?? b.mem,
         currentStep: 0,
         totalSteps: 0,
       }));
@@ -1356,7 +1526,7 @@ export default function Index() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredBrowsers.map((b, i) => {
+                    {filteredBrowsers.slice((browserPage - 1) * PAGE_SIZE, browserPage * PAGE_SIZE).map((b, i) => {
                       const currentStatus = isElectron
                         ? b.status
                         : (browserStates[b.id] ?? b.status);
@@ -1412,6 +1582,7 @@ export default function Index() {
                     })}
                   </tbody>
                 </table>
+                <Pagination page={browserPage} total={filteredBrowsers.length} pageSize={PAGE_SIZE} onChange={setBrowserPage} />
                 {filteredBrowsers.length === 0 && (
                   <div className="text-center py-10 text-[13px] text-slate-500">
                     <Icon name="Monitor" size={24} className="mx-auto mb-2 opacity-30" />
@@ -1428,6 +1599,18 @@ export default function Index() {
               <div className="flex items-center gap-3">
                 <div className="text-[12px] text-slate-500">{filteredAccounts.length} аккаунтов</div>
                 <div className="flex-1" />
+                <label className="flex items-center gap-2 px-3 py-1.5 bg-[#1a1028] border border-[#2f2445] rounded text-[12px] text-slate-400 hover:bg-[#251a38] transition-colors cursor-pointer">
+                  <Icon name="Upload" size={12} />
+                  Импорт CSV
+                  <input type="file" accept=".csv" className="hidden" onChange={e => e.target.files?.[0] && importAccounts(e.target.files[0])} />
+                </label>
+                <button
+                  onClick={exportAccounts}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-[#1a1028] border border-[#2f2445] rounded text-[12px] text-slate-400 hover:bg-[#251a38] transition-colors"
+                >
+                  <Icon name="Download" size={12} />
+                  Экспорт CSV
+                </button>
                 <button
                   onClick={() => setAccountModal({ open: true })}
                   className="flex items-center gap-2 px-3 py-1.5 bg-violet-600 rounded text-[12px] text-white hover:bg-violet-500 transition-colors"
@@ -1447,7 +1630,7 @@ export default function Index() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredAccounts.map((a, i) => (
+                    {filteredAccounts.slice((accountPage - 1) * PAGE_SIZE, accountPage * PAGE_SIZE).map((a, i) => (
                       <tr key={a.id} className={`border-b border-[#2a1f3d] hover:bg-[#251a38]/50 transition-colors ${i === filteredAccounts.length - 1 ? "border-b-0" : ""}`}>
                         <td className="px-4 py-3 font-mono text-[12px] text-slate-200">{a.login}</td>
                         <td className="px-4 py-3 text-[12px] text-slate-400">{a.site || "—"}</td>
@@ -1474,6 +1657,7 @@ export default function Index() {
                     ))}
                   </tbody>
                 </table>
+                <Pagination page={accountPage} total={filteredAccounts.length} pageSize={PAGE_SIZE} onChange={setAccountPage} />
                 {filteredAccounts.length === 0 && (
                   <div className="text-center py-10 text-[13px] text-slate-500">
                     <Icon name="Users" size={24} className="mx-auto mb-2 opacity-30" />
@@ -1597,7 +1781,7 @@ export default function Index() {
                   ))}
                 </div>
                 <div className="divide-y divide-[#1a2333]">
-                  {filteredLogs.map(l => (
+                  {filteredLogs.slice((logPage - 1) * PAGE_SIZE, logPage * PAGE_SIZE).map(l => (
                     <div key={l.id} className="flex items-start gap-6 px-4 py-2.5 hover:bg-[#251a38]/40 transition-colors">
                       <div className="w-20 font-mono text-[11px] text-slate-600 mt-0.5">{l.time}</div>
                       <div className="w-20 mt-0.5"><LogBadge level={l.level} /></div>
@@ -1606,6 +1790,7 @@ export default function Index() {
                     </div>
                   ))}
                 </div>
+                <Pagination page={logPage} total={filteredLogs.length} pageSize={PAGE_SIZE} onChange={setLogPage} />
                 {filteredLogs.length === 0 && (
                   <div className="text-center py-10 text-[13px] text-slate-500">
                     <Icon name="ScrollText" size={24} className="mx-auto mb-2 opacity-30" />
@@ -1789,12 +1974,26 @@ export default function Index() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="text-[12px] text-slate-500">{proxies.length} прокси-серверов</div>
-                    <button
-                      onClick={() => setProxyModal({ open: true })}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-violet-600 rounded text-[12px] text-white hover:bg-violet-500 transition-colors"
-                    >
-                      <Icon name="Plus" size={12} />Добавить прокси
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <label className="flex items-center gap-2 px-3 py-1.5 bg-[#1a1028] border border-[#2f2445] rounded text-[12px] text-slate-400 hover:bg-[#251a38] transition-colors cursor-pointer">
+                        <Icon name="Upload" size={12} />
+                        Импорт CSV
+                        <input type="file" accept=".csv" className="hidden" onChange={e => e.target.files?.[0] && importProxies(e.target.files[0])} />
+                      </label>
+                      <button
+                        onClick={exportProxies}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-[#1a1028] border border-[#2f2445] rounded text-[12px] text-slate-400 hover:bg-[#251a38] transition-colors"
+                      >
+                        <Icon name="Download" size={12} />
+                        Экспорт CSV
+                      </button>
+                      <button
+                        onClick={() => setProxyModal({ open: true })}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-violet-600 rounded text-[12px] text-white hover:bg-violet-500 transition-colors"
+                      >
+                        <Icon name="Plus" size={12} />Добавить прокси
+                      </button>
+                    </div>
                   </div>
                   <div className="bg-[#1a1028] border border-[#2f2445] rounded-lg overflow-hidden">
                     <table className="w-full">
