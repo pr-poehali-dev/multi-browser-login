@@ -118,16 +118,26 @@ if [ -f "$INDEX_HTML" ]; then
   sed -i '' 's|src="/assets/|src="./assets/|g' "$INDEX_HTML"
   sed -i '' 's|href="/assets/|href="./assets/|g' "$INDEX_HTML"
 
-  # Убираем скрипты платформы poehali.dev — они не нужны в desktop-приложении
-  # и вызывают 404 при загрузке через file://
-  sed -i '' '/cdn\.poehali\.dev.*\.js/d' "$INDEX_HTML"
-  sed -i '' '/pp-min/d' "$INDEX_HTML"
-  sed -i '' '/telemetry-min/d' "$INDEX_HTML"
-  sed -i '' '/route-min/d' "$INDEX_HTML"
-  sed -i '' '/inspector-min/d' "$INDEX_HTML"
-  sed -i '' '/yandex\.ru\/metrika/d' "$INDEX_HTML"
-  sed -i '' '/mc\.yandex/d' "$INDEX_HTML"
-  sed -i '' '/ym(101/d' "$INDEX_HTML"
+  # Убираем ВСЕ скрипты платформы и аналитики — они ломают Electron (file://)
+  # Создаём чистый index.html с только нужными тегами
+  node -e "
+    const fs = require('fs');
+    let html = fs.readFileSync('$INDEX_HTML', 'utf8');
+    // Удаляем все script-теги с cdn.poehali.dev
+    html = html.replace(/<script[^>]*cdn\.poehali\.dev[^>]*><\/script>/gi, '');
+    html = html.replace(/<script[^>]*cdn\.poehali\.dev[^>]*>/gi, '');
+    // Удаляем весь блок Yandex.Metrika (от комментария до комментария)
+    html = html.replace(/<!-- Yandex\.Metrika[\s\S]*?\/Yandex\.Metrika counter -->/gi, '');
+    // Удаляем оставшиеся inline-скрипты аналитики
+    html = html.replace(/<script[^>]*>[\s\S]*?ym\([\s\S]*?<\/script>/gi, '');
+    // Удаляем noscript теги с метрикой
+    html = html.replace(/<noscript>[\s\S]*?mc\.yandex[\s\S]*?<\/noscript>/gi, '');
+    // Удаляем мета-теги платформы
+    html = html.replace(/<meta name=\"pp-name\"[^>]*>/gi, '');
+    // Удаляем пустые строки подряд
+    html = html.replace(/\n{3,}/g, '\n\n');
+    fs.writeFileSync('$INDEX_HTML', html);
+  "
 
   echo -e "${GREEN}✓ index.html подготовлен для Electron${NC}"
 else
