@@ -96,11 +96,20 @@ echo -e "${CYAN}▶ Собираю интерфейс...${NC}"
 npm run build --silent
 echo -e "${GREEN}✓ Интерфейс собран${NC}"
 
-# ── Копируем dist в webapp/dist ───────────────────────────────────────────────
+# ── Копируем dist в webapp/dist и фиксим пути для Electron ───────────────────
 echo ""
 echo -e "${CYAN}▶ Копирую интерфейс в Electron...${NC}"
 mkdir -p "$WEBAPP_DIR/dist"
 cp -r "$PROJECT_ROOT/dist/." "$WEBAPP_DIR/dist/"
+
+# Electron загружает через file:// — нужны относительные пути ./assets/ вместо /assets/
+INDEX_HTML="$WEBAPP_DIR/dist/index.html"
+if [ -f "$INDEX_HTML" ]; then
+  sed -i '' 's|"/assets/|"./assets/|g' "$INDEX_HTML"
+  sed -i '' "s|'/assets/|'./assets/|g" "$INDEX_HTML"
+  sed -i '' 's|src="/|src="./|g' "$INDEX_HTML"
+  sed -i '' 's|href="/assets/|href="./assets/|g' "$INDEX_HTML"
+fi
 echo -e "${GREEN}✓ Готово${NC}"
 
 # ── Установка зависимостей Electron ───────────────────────────────────────────
