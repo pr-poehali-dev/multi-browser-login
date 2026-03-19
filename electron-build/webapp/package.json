@@ -24,7 +24,8 @@
     "appId": "dev.poehali.mba-browser",
     "productName": "MBA Browser",
     "directories": {
-      "buildResources": ".."
+      "buildResources": "..",
+      "output": "dist"
     },
     "files": [
       "electron.js",
@@ -36,11 +37,35 @@
     "mac": {
       "icon": "../icon.icns",
       "category": "public.app-category.productivity",
-      "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }]
+      "target": [
+        { "target": "dmg", "arch": ["arm64", "x64"] }
+      ]
+    },
+    "dmg": {
+      "title": "MBA Browser",
+      "backgroundColor": "#0f0a1a",
+      "window": { "width": 540, "height": 380 },
+      "contents": [
+        { "x": 130, "y": 180, "type": "file" },
+        { "x": 410, "y": 180, "type": "link", "path": "/Applications" }
+      ]
     },
     "win": {
       "icon": "../icon.ico",
       "target": [{ "target": "nsis", "arch": ["x64"] }]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MBA Browser",
+      "installerIcon": "../icon.ico",
+      "uninstallerIcon": "../icon.ico",
+      "installerHeader": "../icon.ico",
+      "language": "1049",
+      "license": null,
+      "runAfterFinish": true
     },
     "linux": {
       "icon": "../icon.png",

@@ -1,38 +1,73 @@
-# Сборка BrowserCtrl.dmg для macOS
+# MBA Browser — сборка установщика
 
-## Что нужно
-- macOS (для подписи и сборки .dmg)
-- Node.js 18+ (https://nodejs.org)
+## Требования
 
-## Шаги
+- **Node.js 18+** — скачать: https://nodejs.org
+- **Google Chrome** — установленный на компьютере
+- Скачанный код проекта (Скачать → Скачать код)
 
-### 1. Скачай код проекта
-Скачать → Скачать код (или через GitHub)
+---
 
-### 2. Собери React-приложение для Electron
-В корне проекта:
+## macOS — собрать .dmg
+
+Открой Терминал и выполни одну команду из папки проекта:
+
 ```bash
-npx vite build --config electron-build/vite.electron.config.ts
+bash electron-build/build-mac.sh
 ```
 
-### 3. Сгенерируй иконку приложения
-```bash
-cd electron-build
-chmod +x make-icon.sh
-./make-icon.sh
+Скрипт сам:
+1. Установит все зависимости
+2. Соберёт интерфейс
+3. Создаст иконку приложения
+4. Соберёт `MBA Browser.dmg`
+5. Откроет папку с готовым файлом
+
+**Установка:** открой .dmg → перетащи MBA Browser в Applications → запускай из Launchpad.
+
+---
+
+## Windows — собрать .exe установщик
+
+Дважды кликни файл:
+
+```
+electron-build\build-win.bat
 ```
 
-### 4. Установи зависимости Electron
-```bash
-npm install
+Скрипт сам:
+1. Установит все зависимости
+2. Соберёт интерфейс
+3. Соберёт `MBA Browser Setup.exe`
+4. Откроет папку с готовым файлом
+
+**Установка:** запусти `MBA Browser Setup.exe` → следуй инструкциям.  
+Ярлык появится **на рабочем столе** и в меню **Пуск**.
+
+---
+
+## Где найти готовые файлы
+
+После сборки файлы находятся в:
+
+```
+electron-build/webapp/dist/
+├── MBA Browser-1.0.0.dmg          ← macOS
+├── MBA Browser Setup 1.0.0.exe    ← Windows
 ```
 
-### 5. Собери .dmg
-```bash
-npm run dist
-```
+---
 
-### 6. Готово
-Файл появится в `electron-build/release/BrowserCtrl-1.0.0.dmg`
+## Частые проблемы
 
-Открой .dmg, перетащи приложение в папку Applications — и всё готово.
+**"npm не найден" / "node не найден"**  
+→ Установи Node.js: https://nodejs.org и перезапусти терминал/bat-файл
+
+**"Chrome/Chromium не найден" при запуске программы**  
+→ Установи Google Chrome, или укажи путь вручную: Настройки → Путь к Chromium
+
+**Ошибка сборки на macOS: icon.icns**  
+→ Скрипт создаёт иконку автоматически. Убедись что есть доступ в интернет при первом запуске
+
+**Ошибка на Windows: "electron-builder не найден"**  
+→ Запусти `npm install` вручную в папке `electron-build/webapp/`, затем повтори сборку
