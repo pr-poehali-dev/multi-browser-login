@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 
-type Section = "dashboard" | "browsers" | "accounts" | "scenarios" | "logs" | "settings";
+type Section = "dashboard" | "browsers" | "accounts" | "scenarios" | "logs" | "settings" | "install";
 
 type StepType = "navigate" | "click" | "type" | "wait" | "condition" | "screenshot" | "scroll" | "extract";
 
@@ -1329,6 +1329,7 @@ export default function Index() {
     { id: "scenarios", icon: "Workflow", label: "Сценарии" },
     { id: "logs", icon: "ScrollText", label: "Логи" },
     { id: "settings", icon: "Settings", label: "Настройки" },
+    { id: "install", icon: "PackageOpen", label: "Установка" },
   ];
 
   // ── Derived values ─────────────────────────────────────────────────────────
@@ -2122,6 +2123,169 @@ export default function Index() {
               )}
             </div>
           )}
+
+          {/* INSTALL */}
+          {section === "install" && (
+            <div className="space-y-5 animate-fade-in max-w-2xl">
+
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-9 h-9 rounded bg-violet-600/20 border border-violet-600/30 flex items-center justify-center">
+                  <Icon name="PackageOpen" size={17} className="text-violet-400" />
+                </div>
+                <div>
+                  <div className="text-[15px] font-semibold text-slate-100">Установка MBA Browser</div>
+                  <div className="text-[12px] text-slate-500">Инструкция по сборке и установке приложения</div>
+                </div>
+              </div>
+
+              {/* Requirements */}
+              <div className="bg-[#1a1028] border border-[#2f2445] rounded-lg p-5">
+                <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-3">Требования</div>
+                <div className="space-y-2">
+                  {[
+                    { icon: "Box", label: "Node.js 18+", desc: "nodejs.org", link: "https://nodejs.org" },
+                    { icon: "Chrome", label: "Google Chrome", desc: "Должен быть установлен на компьютере", link: null },
+                    { icon: "Download", label: "Код проекта", desc: "Скачать → Скачать код (кнопка вверху)", link: null },
+                  ].map(req => (
+                    <div key={req.label} className="flex items-center gap-3 px-3 py-2.5 bg-[#0a0612] border border-[#2f2445] rounded">
+                      <div className="w-7 h-7 rounded bg-violet-600/10 border border-violet-600/20 flex items-center justify-center flex-shrink-0">
+                        <Icon name={req.icon} size={13} className="text-violet-400" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-[12px] font-medium text-slate-200">{req.label}</div>
+                        <div className="text-[11px] text-slate-500">{req.desc}</div>
+                      </div>
+                      {req.link && (
+                        <a href={req.link} target="_blank" rel="noreferrer" className="text-[11px] text-violet-400 hover:text-violet-300 transition-colors">
+                          Скачать →
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* macOS */}
+              <div className="bg-[#1a1028] border border-[#2f2445] rounded-lg overflow-hidden">
+                <div className="flex items-center gap-3 px-5 py-4 border-b border-[#2f2445]">
+                  <div className="w-8 h-8 rounded bg-slate-500/10 border border-slate-500/20 flex items-center justify-center">
+                    <Icon name="Apple" size={15} className="text-slate-300" />
+                  </div>
+                  <div>
+                    <div className="text-[13px] font-semibold text-slate-100">macOS</div>
+                    <div className="text-[11px] text-slate-500">Установщик .dmg — перетащи в Applications</div>
+                  </div>
+                  <span className="ml-auto px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded text-[10px] text-emerald-400 font-medium">M1 / Intel</span>
+                </div>
+                <div className="p-5 space-y-3">
+                  {[
+                    { num: "1", text: "Скачай код проекта через кнопку «Скачать» вверху страницы" },
+                    { num: "2", text: "Открой Терминал и перейди в папку проекта" },
+                    { num: "3", text: "Запусти одну команду:" },
+                  ].map(step => (
+                    <div key={step.num} className="flex gap-3">
+                      <div className="w-5 h-5 rounded-full bg-violet-600/20 border border-violet-600/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-[10px] font-bold text-violet-400">{step.num}</span>
+                      </div>
+                      <div className="text-[12px] text-slate-300 leading-relaxed">{step.text}</div>
+                    </div>
+                  ))}
+                  <div className="ml-8 bg-[#0a0612] border border-[#2f2445] rounded px-4 py-3 font-mono text-[12px] text-emerald-400 flex items-center justify-between gap-3">
+                    <span>bash electron-build/build-mac.sh</span>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText("bash electron-build/build-mac.sh"); showToast("Скопировано"); }}
+                      className="text-slate-600 hover:text-slate-300 transition-colors flex-shrink-0"
+                      title="Скопировать"
+                    >
+                      <Icon name="Copy" size={13} />
+                    </button>
+                  </div>
+                  <div className="ml-8 flex items-start gap-2 text-[11px] text-slate-500">
+                    <Icon name="Info" size={12} className="mt-0.5 flex-shrink-0 text-violet-500/60" />
+                    Скрипт сам установит зависимости, соберёт интерфейс и создаст .dmg. Займёт 2-5 минут.
+                  </div>
+                  <div className="ml-8 flex gap-3">
+                    <div key="4" className="flex gap-3">
+                      <div className="w-5 h-5 rounded-full bg-violet-600/20 border border-violet-600/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-[10px] font-bold text-violet-400">4</span>
+                      </div>
+                      <div className="text-[12px] text-slate-300 leading-relaxed">Открой готовый <span className="font-mono text-slate-200">MBA Browser.dmg</span> → перетащи иконку в <span className="font-mono text-slate-200">Applications</span> → запускай из Launchpad</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Windows */}
+              <div className="bg-[#1a1028] border border-[#2f2445] rounded-lg overflow-hidden">
+                <div className="flex items-center gap-3 px-5 py-4 border-b border-[#2f2445]">
+                  <div className="w-8 h-8 rounded bg-slate-500/10 border border-slate-500/20 flex items-center justify-center">
+                    <Icon name="Monitor" size={15} className="text-slate-300" />
+                  </div>
+                  <div>
+                    <div className="text-[13px] font-semibold text-slate-100">Windows</div>
+                    <div className="text-[11px] text-slate-500">Установщик .exe — ярлык на рабочем столе</div>
+                  </div>
+                  <span className="ml-auto px-2 py-0.5 bg-violet-500/10 border border-violet-500/20 rounded text-[10px] text-violet-400 font-medium">x64</span>
+                </div>
+                <div className="p-5 space-y-3">
+                  {[
+                    { num: "1", text: "Скачай код проекта через кнопку «Скачать» вверху страницы" },
+                    { num: "2", text: "Открой папку проекта в Проводнике" },
+                    { num: "3", text: "Дважды кликни на файл:" },
+                  ].map(step => (
+                    <div key={step.num} className="flex gap-3">
+                      <div className="w-5 h-5 rounded-full bg-violet-600/20 border border-violet-600/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-[10px] font-bold text-violet-400">{step.num}</span>
+                      </div>
+                      <div className="text-[12px] text-slate-300 leading-relaxed">{step.text}</div>
+                    </div>
+                  ))}
+                  <div className="ml-8 bg-[#0a0612] border border-[#2f2445] rounded px-4 py-3 font-mono text-[12px] text-amber-400 flex items-center justify-between gap-3">
+                    <span>electron-build\build-win.bat</span>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText("electron-build\\build-win.bat"); showToast("Скопировано"); }}
+                      className="text-slate-600 hover:text-slate-300 transition-colors flex-shrink-0"
+                      title="Скопировать"
+                    >
+                      <Icon name="Copy" size={13} />
+                    </button>
+                  </div>
+                  <div className="ml-8 flex items-start gap-2 text-[11px] text-slate-500">
+                    <Icon name="Info" size={12} className="mt-0.5 flex-shrink-0 text-violet-500/60" />
+                    Скрипт сам всё сделает и создаст <span className="font-mono">MBA Browser Setup.exe</span>. Займёт 2-5 минут.
+                  </div>
+                  <div className="ml-8 flex gap-3">
+                    <div key="4" className="flex gap-3">
+                      <div className="w-5 h-5 rounded-full bg-violet-600/20 border border-violet-600/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-[10px] font-bold text-violet-400">4</span>
+                      </div>
+                      <div className="text-[12px] text-slate-300 leading-relaxed">Запусти <span className="font-mono text-slate-200">MBA Browser Setup.exe</span> → следуй мастеру установки → ярлык появится на рабочем столе и в меню Пуск</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Troubleshooting */}
+              <div className="bg-[#1a1028] border border-[#2f2445] rounded-lg p-5">
+                <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-3">Частые проблемы</div>
+                <div className="space-y-2.5">
+                  {[
+                    { q: "«node не найден» / «npm не найден»", a: "Установи Node.js с nodejs.org и перезапусти терминал" },
+                    { q: "«Chrome/Chromium не найден» при запуске", a: "Установи Google Chrome, или укажи путь вручную: Настройки → Путь к Chromium" },
+                    { q: "Ошибка сборки на macOS", a: "Убедись что есть доступ в интернет — скрипт скачивает иконку при первом запуске" },
+                    { q: "Ошибка на Windows: «electron-builder не найден»", a: "Запусти npm install вручную в папке electron-build/webapp/, затем повтори" },
+                  ].map(item => (
+                    <div key={item.q} className="px-3 py-2.5 bg-[#0a0612] border border-[#2f2445] rounded">
+                      <div className="text-[12px] font-medium text-amber-400 mb-1">{item.q}</div>
+                      <div className="text-[11px] text-slate-400">→ {item.a}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          )}
+
         </div>
       </main>
 
