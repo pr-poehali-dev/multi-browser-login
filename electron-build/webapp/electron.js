@@ -25,32 +25,28 @@ function createWindow() {
     },
   });
 
-  const isDev = !app.isPackaged;
-  if (isDev) {
+  // Ищем dist/index.html — сначала рядом с electron.js, потом через appPath
+  const appPath = app.getAppPath();
+  const candidates = [
+    path.join(__dirname, 'dist', 'index.html'),
+    path.join(appPath, 'dist', 'index.html'),
+  ];
+  const indexPath = candidates.find(p => fs.existsSync(p));
+
+  if (indexPath) {
+    mainWindow.loadFile(indexPath);
+  } else if (!app.isPackaged) {
+    // Только в режиме разработки — грузим dev-сервер
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
   } else {
-    // В собранном .app ресурсы лежат в app.getAppPath()/dist/
-    const appPath = app.getAppPath();
-    const candidates = [
-      path.join(appPath, 'dist', 'index.html'),
-      path.join(__dirname, 'dist', 'index.html'),
-      path.join(__dirname, '..', 'dist', 'index.html'),
-    ];
-    const indexPath = candidates.find(p => fs.existsSync(p));
-    if (indexPath) {
-      mainWindow.loadFile(indexPath);
-    } else {
-      // Показываем страницу с диагностикой
-      mainWindow.loadURL(`data:text/html,<html><body style="background:#0a0612;color:#e2e8f0;font-family:monospace;padding:40px">
-        <h2 style="color:#8b5cf6">MBA Browser — ошибка загрузки</h2>
-        <p>Не найден dist/index.html</p>
-        <p>appPath: ${appPath}</p>
-        <p>__dirname: ${__dirname}</p>
-        <p>Проверенные пути:</p>
-        <ul>${candidates.map(p => `<li>${p}</li>`).join('')}</ul>
-      </body></html>`);
-    }
+    // Диагностика — показываем пути для отладки
+    const info = candidates.map(p => `${p} — ${fs.existsSync(p) ? 'НАЙДЕН' : 'НЕТ'}`).join('\n');
+    mainWindow.loadURL('data:text/html,' + encodeURIComponent(
+      `<html><body style="background:#0a0612;color:#e2e8f0;font-family:monospace;padding:40px;white-space:pre">` +
+      `MBA Browser — dist/index.html не найден\n\n${info}\n\nappPath: ${appPath}\n__dirname: ${__dirname}` +
+      `</body></html>`
+    ));
   }
 
   bm.init(
