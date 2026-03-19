@@ -25,14 +25,14 @@
     "productName": "MBA Browser",
     "directories": {
       "buildResources": "..",
-      "output": "dist"
+      "output": "release"
     },
     "files": [
       "electron.js",
       "preload.js",
       "browser-manager.js",
       "node_modules/**",
-      "../dist/**"
+      "dist/**"
     ],
     "mac": {
       "icon": "../icon.icns",

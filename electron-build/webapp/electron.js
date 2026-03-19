@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const bm = require('./browser-manager');
 
 // Инициализируем browser-manager — передаём функции для отправки событий в UI
@@ -29,7 +30,27 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    // В собранном .app ресурсы лежат в app.getAppPath()/dist/
+    const appPath = app.getAppPath();
+    const candidates = [
+      path.join(appPath, 'dist', 'index.html'),
+      path.join(__dirname, 'dist', 'index.html'),
+      path.join(__dirname, '..', 'dist', 'index.html'),
+    ];
+    const indexPath = candidates.find(p => fs.existsSync(p));
+    if (indexPath) {
+      mainWindow.loadFile(indexPath);
+    } else {
+      // Показываем страницу с диагностикой
+      mainWindow.loadURL(`data:text/html,<html><body style="background:#0a0612;color:#e2e8f0;font-family:monospace;padding:40px">
+        <h2 style="color:#8b5cf6">MBA Browser — ошибка загрузки</h2>
+        <p>Не найден dist/index.html</p>
+        <p>appPath: ${appPath}</p>
+        <p>__dirname: ${__dirname}</p>
+        <p>Проверенные пути:</p>
+        <ul>${candidates.map(p => `<li>${p}</li>`).join('')}</ul>
+      </body></html>`);
+    }
   }
 
   bm.init(

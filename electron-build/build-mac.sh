@@ -14,7 +14,7 @@ NC='\033[0m'
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 WEBAPP_DIR="$SCRIPT_DIR/webapp"
-OUTPUT_DIR="$WEBAPP_DIR/dist"
+OUTPUT_DIR="$WEBAPP_DIR/release"
 
 echo ""
 echo -e "${CYAN}${BOLD}╔══════════════════════════════════════════╗${NC}"
@@ -95,6 +95,13 @@ echo ""
 echo -e "${CYAN}▶ Собираю интерфейс...${NC}"
 npm run build --silent
 echo -e "${GREEN}✓ Интерфейс собран${NC}"
+
+# ── Копируем dist в webapp/dist ───────────────────────────────────────────────
+echo ""
+echo -e "${CYAN}▶ Копирую интерфейс в Electron...${NC}"
+mkdir -p "$WEBAPP_DIR/dist"
+cp -r "$PROJECT_ROOT/dist/." "$WEBAPP_DIR/dist/"
+echo -e "${GREEN}✓ Готово${NC}"
 
 # ── Установка зависимостей Electron ───────────────────────────────────────────
 echo ""
