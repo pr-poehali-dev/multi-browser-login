@@ -96,22 +96,6 @@ echo -e "${CYAN}▶ Собираю интерфейс...${NC}"
 npm run build --silent
 echo -e "${GREEN}✓ Интерфейс собран${NC}"
 
-# ── Копируем dist в webapp/dist и фиксим пути для Electron ───────────────────
-echo ""
-echo -e "${CYAN}▶ Копирую интерфейс в Electron...${NC}"
-mkdir -p "$WEBAPP_DIR/dist"
-cp -r "$PROJECT_ROOT/dist/." "$WEBAPP_DIR/dist/"
-
-# Electron загружает через file:// — нужны относительные пути ./assets/ вместо /assets/
-INDEX_HTML="$WEBAPP_DIR/dist/index.html"
-if [ -f "$INDEX_HTML" ]; then
-  sed -i '' 's|"/assets/|"./assets/|g' "$INDEX_HTML"
-  sed -i '' "s|'/assets/|'./assets/|g" "$INDEX_HTML"
-  sed -i '' 's|src="/|src="./|g' "$INDEX_HTML"
-  sed -i '' 's|href="/assets/|href="./assets/|g' "$INDEX_HTML"
-fi
-echo -e "${GREEN}✓ Готово${NC}"
-
 # ── Установка зависимостей Electron ───────────────────────────────────────────
 echo ""
 echo -e "${CYAN}▶ Устанавливаю зависимости Electron...${NC}"
@@ -119,11 +103,31 @@ cd "$WEBAPP_DIR"
 npm install --silent
 echo -e "${GREEN}✓ Готово${NC}"
 
+# ── Копируем dist в webapp/dist и фиксим пути для Electron ───────────────────
+# ВАЖНО: копируем ПОСЛЕ npm install чтобы electron-builder не игнорировал папку
+echo ""
+echo -e "${CYAN}▶ Копирую интерфейс в Electron...${NC}"
+rm -rf "$WEBAPP_DIR/dist"
+mkdir -p "$WEBAPP_DIR/dist"
+cp -r "$PROJECT_ROOT/dist/." "$WEBAPP_DIR/dist/"
+
+# Electron загружает через file:// — нужны относительные пути
+INDEX_HTML="$WEBAPP_DIR/dist/index.html"
+if [ -f "$INDEX_HTML" ]; then
+  sed -i '' 's|src="/assets/|src="./assets/|g' "$INDEX_HTML"
+  sed -i '' 's|href="/assets/|href="./assets/|g' "$INDEX_HTML"
+  echo -e "${GREEN}✓ Пути исправлены в index.html${NC}"
+else
+  echo -e "${RED}✗ dist/index.html не найден! Сборка React не удалась.${NC}"
+  exit 1
+fi
+echo -e "${GREEN}✓ Файлов скопировано: $(find "$WEBAPP_DIR/dist" | wc -l | tr -d ' ')${NC}"
+
 # ── Сборка .dmg ───────────────────────────────────────────────────────────────
 echo ""
 echo -e "${CYAN}▶ Собираю MBA Browser.dmg...${NC}"
 echo -e "${YELLOW}  Это займёт 1-3 минуты...${NC}"
-npx electron-builder --mac --x64 --arm64 2>&1 | grep -E "(Building|Packaging|Signing|Done|Error|error)" || true
+npx electron-builder --mac --arm64 2>&1
 
 # ── Результат ─────────────────────────────────────────────────────────────────
 DMG_FILE=$(find "$OUTPUT_DIR" -name "*.dmg" | head -1)

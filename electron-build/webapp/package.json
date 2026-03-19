@@ -32,8 +32,12 @@
       "preload.js",
       "browser-manager.js",
       "node_modules/**",
-      "dist/**"
+      "dist/**",
+      "!dist/.gitkeep"
     ],
+    "extraResources": [],
+    "asar": true,
+    "asarUnpack": [],
     "mac": {
       "icon": "../icon.icns",
       "category": "public.app-category.productivity",
