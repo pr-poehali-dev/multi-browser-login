@@ -2186,9 +2186,9 @@ export default function Index() {
                 </div>
                 <div className="p-5 space-y-3">
                   {[
-                    { num: "1", text: "Скачай код проекта через кнопку «Скачать» вверху страницы" },
-                    { num: "2", text: "Открой Терминал и перейди в папку проекта" },
-                    { num: "3", text: "Запусти одну команду:" },
+                    { num: "1", text: "Нажми «Скачать код» выше → распакуй архив (например в папку Загрузки)" },
+                    { num: "2", text: "Открой Терминал (Finder → Программы → Утилиты → Терминал)" },
+                    { num: "3", text: "Перейди в папку проекта командой cd (замени путь на свой):" },
                   ].map(step => (
                     <div key={step.num} className="flex gap-3">
                       <div className="w-5 h-5 rounded-full bg-violet-600/20 border border-violet-600/30 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -2197,6 +2197,22 @@ export default function Index() {
                       <div className="text-[12px] text-slate-300 leading-relaxed">{step.text}</div>
                     </div>
                   ))}
+                  <div className="ml-8 bg-[#0a0612] border border-[#2f2445] rounded px-4 py-3 font-mono text-[12px] text-emerald-400 flex items-center justify-between gap-3">
+                    <span>cd ~/Downloads/multi-browser-login-main</span>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText("cd ~/Downloads/multi-browser-login-main"); showToast("Скопировано"); }}
+                      className="text-slate-600 hover:text-slate-300 transition-colors flex-shrink-0"
+                      title="Скопировать"
+                    >
+                      <Icon name="Copy" size={13} />
+                    </button>
+                  </div>
+                  <div className="ml-8 flex gap-3">
+                    <div className="w-5 h-5 rounded-full bg-violet-600/20 border border-violet-600/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-[10px] font-bold text-violet-400">4</span>
+                    </div>
+                    <div className="text-[12px] text-slate-300 leading-relaxed">Запусти сборку:</div>
+                  </div>
                   <div className="ml-8 bg-[#0a0612] border border-[#2f2445] rounded px-4 py-3 font-mono text-[12px] text-emerald-400 flex items-center justify-between gap-3">
                     <span>bash electron-build/build-mac.sh</span>
                     <button
@@ -2212,11 +2228,17 @@ export default function Index() {
                     Скрипт сам установит зависимости, соберёт интерфейс и создаст .dmg. Займёт 2-5 минут.
                   </div>
                   <div className="ml-8 flex gap-3">
-                    <div key="4" className="flex gap-3">
+                    <div className="flex gap-3">
                       <div className="w-5 h-5 rounded-full bg-violet-600/20 border border-violet-600/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <span className="text-[10px] font-bold text-violet-400">4</span>
+                        <span className="text-[10px] font-bold text-violet-400">5</span>
                       </div>
                       <div className="text-[12px] text-slate-300 leading-relaxed">Открой готовый <span className="font-mono text-slate-200">MBA Browser.dmg</span> → перетащи иконку в <span className="font-mono text-slate-200">Applications</span> → запускай из Launchpad</div>
+                    </div>
+                  </div>
+                  <div className="ml-8 px-3 py-2.5 bg-amber-500/5 border border-amber-500/20 rounded flex items-start gap-2">
+                    <Icon name="TriangleAlert" size={12} className="text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div className="text-[11px] text-amber-400/80">
+                      <span className="font-medium text-amber-400">Важно:</span> команду <span className="font-mono">bash electron-build/build-mac.sh</span> нужно запускать именно из папки проекта, а не из домашней папки <span className="font-mono">~</span>
                     </div>
                   </div>
                 </div>
