@@ -1,5 +1,5 @@
 {
-  "name": "browserctrl",
+  "name": "mba-browser",
   "version": "1.0.0",
   "description": "Desktop browser automation tool",
   "main": "electron.js",
@@ -21,8 +21,8 @@
     "wait-on": "^7.2.0"
   },
   "build": {
-    "appId": "dev.poehali.browserctrl",
-    "productName": "BrowserCtrl",
+    "appId": "dev.poehali.mba-browser",
+    "productName": "MBA Browser",
     "directories": {
       "buildResources": ".."
     },

@@ -93,8 +93,8 @@ const defaultSettings: Settings = {
   connectionTimeout: 30,
   proxyRotationInterval: 15,
   chromiumPath: "/usr/bin/chromium",
-  profilesDir: "~/.browserctrl/profiles",
-  logsDir: "~/.browserctrl/logs",
+  profilesDir: "~/.mba-browser/profiles",
+  logsDir: "~/.mba-browser/logs",
   headless: true,
   disableImages: false,
   autoRotateProxy: true,
@@ -103,7 +103,7 @@ const defaultSettings: Settings = {
 };
 
 const STEP_TYPES: { type: StepType; icon: string; label: string; color: string; fields: { key: string; label: string; placeholder: string }[] }[] = [
-  { type: "navigate", icon: "Globe", label: "Открыть страницу", color: "text-blue-400 bg-blue-500/10 border-blue-500/20",
+  { type: "navigate", icon: "Globe", label: "Открыть страницу", color: "text-violet-400 bg-violet-500/10 border-violet-500/20",
     fields: [{ key: "url", label: "URL", placeholder: "https://example.com" }] },
   { type: "click", icon: "MousePointer2", label: "Кликнуть", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
     fields: [{ key: "selector", label: "CSS-селектор", placeholder: "#submit-btn" }, { key: "timeout", label: "Таймаут (мс)", placeholder: "3000" }] },
@@ -165,12 +165,12 @@ const StatusBadge = ({ status }: { status: string }) => {
     running: { label: "Работает", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
     paused: { label: "Пауза", cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
     stopped: { label: "Остановлен", cls: "bg-slate-500/15 text-slate-400 border-slate-500/30" },
-    done: { label: "Завершён", cls: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+    done: { label: "Завершён", cls: "bg-violet-500/15 text-violet-400 border-violet-500/30" },
     error: { label: "Ошибка", cls: "bg-red-500/15 text-red-400 border-red-500/30" },
     active: { label: "Активен", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
     inactive: { label: "Неактивен", cls: "bg-slate-500/15 text-slate-400 border-slate-500/30" },
     banned: { label: "Заблокирован", cls: "bg-red-500/15 text-red-400 border-red-500/30" },
-    draft: { label: "Черновик", cls: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+    draft: { label: "Черновик", cls: "bg-violet-500/15 text-violet-400 border-violet-500/30" },
     disabled: { label: "Отключён", cls: "bg-slate-500/15 text-slate-400 border-slate-500/30" },
     dead: { label: "Недоступен", cls: "bg-red-500/15 text-red-400 border-red-500/30" },
   };
@@ -180,7 +180,7 @@ const StatusBadge = ({ status }: { status: string }) => {
 
 const LogBadge = ({ level }: { level: string }) => {
   const map: Record<string, string> = {
-    info: "text-blue-400",
+    info: "text-violet-400",
     warn: "text-amber-400",
     error: "text-red-400",
   };
@@ -188,11 +188,11 @@ const LogBadge = ({ level }: { level: string }) => {
 };
 
 const StatCard = ({ icon, label, value, sub, accent }: { icon: string; label: string; value: string | number; sub?: string; accent?: string }) => (
-  <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-5 flex flex-col gap-3 animate-fade-in">
+  <div className="bg-[#1a1028] border border-[#2f2445] rounded-lg p-5 flex flex-col gap-3 animate-fade-in">
     <div className="flex items-center justify-between">
       <span className="text-[11px] font-medium text-slate-500 uppercase tracking-widest">{label}</span>
-      <div className={`w-8 h-8 rounded flex items-center justify-center ${accent ?? "bg-blue-500/10"}`}>
-        <Icon name={icon} size={16} className="text-blue-400" />
+      <div className={`w-8 h-8 rounded flex items-center justify-center ${accent ?? "bg-violet-500/10"}`}>
+        <Icon name={icon} size={16} className="text-violet-400" />
       </div>
     </div>
     <div className="font-ibm text-3xl font-semibold text-slate-100 leading-none">{value}</div>
@@ -252,25 +252,25 @@ function ScenarioModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
-      <div className="w-[860px] max-h-[90vh] bg-[#0e1520] border border-[#1e2837] rounded-xl flex flex-col shadow-2xl overflow-hidden">
+      <div className="w-[860px] max-h-[90vh] bg-[#0f0a1a] border border-[#2f2445] rounded-xl flex flex-col shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center gap-4 px-6 py-4 border-b border-[#1e2837] flex-shrink-0">
-          <div className="w-8 h-8 rounded bg-blue-600/20 border border-blue-600/30 flex items-center justify-center">
-            <Icon name="Workflow" size={15} className="text-blue-400" />
+        <div className="flex items-center gap-4 px-6 py-4 border-b border-[#2f2445] flex-shrink-0">
+          <div className="w-8 h-8 rounded bg-violet-600/20 border border-violet-600/30 flex items-center justify-center">
+            <Icon name="Workflow" size={15} className="text-violet-400" />
           </div>
           <input
             value={name}
             onChange={e => setName(e.target.value)}
-            className="flex-1 bg-transparent text-[15px] font-semibold text-slate-100 outline-none placeholder-slate-600 border-b border-transparent focus:border-blue-500/40 transition-colors pb-0.5"
+            className="flex-1 bg-transparent text-[15px] font-semibold text-slate-100 outline-none placeholder-slate-600 border-b border-transparent focus:border-violet-500/40 transition-colors pb-0.5"
           />
           <div className="flex items-center gap-2">
             <button
               onClick={() => onSave(name, steps)}
-              className="px-4 py-1.5 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 transition-colors font-medium"
+              className="px-4 py-1.5 bg-violet-600 rounded text-[12px] text-white hover:bg-violet-500 transition-colors font-medium"
             >
               Сохранить
             </button>
-            <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1a2333] text-slate-500 hover:text-slate-300 transition-colors">
+            <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#251a38] text-slate-500 hover:text-slate-300 transition-colors">
               <Icon name="X" size={15} />
             </button>
           </div>
@@ -278,8 +278,8 @@ function ScenarioModal({
 
         <div className="flex flex-1 overflow-hidden min-h-0">
           {/* Steps list */}
-          <div className="w-64 border-r border-[#1e2837] flex flex-col flex-shrink-0">
-            <div className="px-4 py-3 text-[11px] font-medium text-slate-500 uppercase tracking-widest border-b border-[#1e2837] flex items-center justify-between">
+          <div className="w-64 border-r border-[#2f2445] flex flex-col flex-shrink-0">
+            <div className="px-4 py-3 text-[11px] font-medium text-slate-500 uppercase tracking-widest border-b border-[#2f2445] flex items-center justify-between">
               <span>Шаги ({steps.length})</span>
             </div>
             <div className="flex-1 overflow-auto p-2 space-y-1">
@@ -296,10 +296,10 @@ function ScenarioModal({
                     onClick={() => setSelectedStep(step.id)}
                     className={`flex items-center gap-2.5 px-3 py-2.5 rounded cursor-pointer transition-all select-none ${
                       selectedStep === step.id
-                        ? "bg-[#1a2c42] border border-blue-500/30"
+                        ? "bg-[#2a1845] border border-violet-500/30"
                         : overIdx === idx
-                        ? "bg-[#1a2333] border border-dashed border-[#2a3a50]"
-                        : "hover:bg-[#141d2a] border border-transparent"
+                        ? "bg-[#251a38] border border-dashed border-[#3a2855]"
+                        : "hover:bg-[#1f1535] border border-transparent"
                     }`}
                   >
                     <div className="text-[10px] font-mono text-slate-600 w-4 text-right flex-shrink-0">{idx + 1}</div>
@@ -322,10 +322,10 @@ function ScenarioModal({
                 );
               })}
             </div>
-            <div className="p-2 border-t border-[#1e2837]">
+            <div className="p-2 border-t border-[#2f2445]">
               <button
                 onClick={() => setShowPicker(!showPicker)}
-                className="w-full flex items-center justify-center gap-2 py-2 rounded border border-dashed border-[#1e2837] text-[12px] text-slate-500 hover:text-slate-300 hover:border-[#2a3a50] transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-2 rounded border border-dashed border-[#2f2445] text-[12px] text-slate-500 hover:text-slate-300 hover:border-[#3a2855] transition-colors"
               >
                 <Icon name="Plus" size={13} />
                 Добавить шаг
@@ -335,8 +335,8 @@ function ScenarioModal({
 
           {/* Step picker */}
           {showPicker && (
-            <div className="w-52 border-r border-[#1e2837] flex flex-col flex-shrink-0">
-              <div className="px-4 py-3 text-[11px] font-medium text-slate-500 uppercase tracking-widest border-b border-[#1e2837]">
+            <div className="w-52 border-r border-[#2f2445] flex flex-col flex-shrink-0">
+              <div className="px-4 py-3 text-[11px] font-medium text-slate-500 uppercase tracking-widest border-b border-[#2f2445]">
                 Тип шага
               </div>
               <div className="flex-1 overflow-auto p-2 space-y-0.5">
@@ -344,7 +344,7 @@ function ScenarioModal({
                   <button
                     key={def.type}
                     onClick={() => addStep(def.type)}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded hover:bg-[#141d2a] transition-colors text-left"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded hover:bg-[#1f1535] transition-colors text-left"
                   >
                     <div className={`w-6 h-6 rounded flex items-center justify-center border flex-shrink-0 ${def.color}`}>
                       <Icon name={def.icon} size={11} />
@@ -383,7 +383,7 @@ function ScenarioModal({
                       value={active.params[field.key] ?? ""}
                       onChange={e => updateParam(active.id, field.key, e.target.value)}
                       placeholder={field.placeholder}
-                      className="w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-600"
+                      className="w-full bg-[#0a0612] border border-[#2f2445] rounded px-3 py-2 text-[13px] text-slate-200 font-mono outline-none focus:border-violet-500/50 transition-colors placeholder-slate-600"
                     />
                   </div>
                 ))}
@@ -423,21 +423,21 @@ function AccountModal({
     onSave({ login, password, site, proxy, status });
   };
 
-  const inputCls = "w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-600";
+  const inputCls = "w-full bg-[#0a0612] border border-[#2f2445] rounded px-3 py-2 text-[13px] text-slate-200 font-mono outline-none focus:border-violet-500/50 transition-colors placeholder-slate-600";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
-      <div className="bg-[#0e1520] border border-[#1e2837] rounded-xl shadow-2xl w-full max-w-md p-6 space-y-5">
+      <div className="bg-[#0f0a1a] border border-[#2f2445] rounded-xl shadow-2xl w-full max-w-md p-6 space-y-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded bg-blue-600/20 border border-blue-600/30 flex items-center justify-center">
-              <Icon name="User" size={15} className="text-blue-400" />
+            <div className="w-8 h-8 rounded bg-violet-600/20 border border-violet-600/30 flex items-center justify-center">
+              <Icon name="User" size={15} className="text-violet-400" />
             </div>
             <div className="text-[14px] font-semibold text-slate-100">
               {account ? "Редактировать аккаунт" : "Новый аккаунт"}
             </div>
           </div>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1a2333] text-slate-500 hover:text-slate-300 transition-colors">
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#251a38] text-slate-500 hover:text-slate-300 transition-colors">
             <Icon name="X" size={15} />
           </button>
         </div>
@@ -474,13 +474,13 @@ function AccountModal({
         </div>
 
         <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className="flex-1 py-2 bg-[#0c1017] border border-[#1e2837] rounded text-[13px] text-slate-400 hover:text-slate-200 hover:bg-[#141920] transition-colors">
+          <button onClick={onClose} className="flex-1 py-2 bg-[#0a0612] border border-[#2f2445] rounded text-[13px] text-slate-400 hover:text-slate-200 hover:bg-[#1a1028] transition-colors">
             Отмена
           </button>
           <button
             onClick={handleSave}
             disabled={!login.trim()}
-            className="flex-1 py-2 bg-blue-600 rounded text-[13px] text-white hover:bg-blue-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 py-2 bg-violet-600 rounded text-[13px] text-white hover:bg-violet-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {account ? "Сохранить" : "Добавить"}
           </button>
@@ -510,21 +510,21 @@ function ProxyModal({
     onSave({ host, port: Number(port), type, country });
   };
 
-  const inputCls = "w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-600";
+  const inputCls = "w-full bg-[#0a0612] border border-[#2f2445] rounded px-3 py-2 text-[13px] text-slate-200 font-mono outline-none focus:border-violet-500/50 transition-colors placeholder-slate-600";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
-      <div className="bg-[#0e1520] border border-[#1e2837] rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-5">
+      <div className="bg-[#0f0a1a] border border-[#2f2445] rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded bg-blue-600/20 border border-blue-600/30 flex items-center justify-center">
-              <Icon name="Server" size={15} className="text-blue-400" />
+            <div className="w-8 h-8 rounded bg-violet-600/20 border border-violet-600/30 flex items-center justify-center">
+              <Icon name="Server" size={15} className="text-violet-400" />
             </div>
             <div className="text-[14px] font-semibold text-slate-100">
               {proxy ? "Редактировать прокси" : "Новый прокси"}
             </div>
           </div>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1a2333] text-slate-500 hover:text-slate-300 transition-colors">
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#251a38] text-slate-500 hover:text-slate-300 transition-colors">
             <Icon name="X" size={15} />
           </button>
         </div>
@@ -553,13 +553,13 @@ function ProxyModal({
         </div>
 
         <div className="flex gap-2 pt-1">
-          <button onClick={onClose} className="flex-1 py-2 bg-[#0c1017] border border-[#1e2837] rounded text-[13px] text-slate-400 hover:text-slate-200 hover:bg-[#141920] transition-colors">
+          <button onClick={onClose} className="flex-1 py-2 bg-[#0a0612] border border-[#2f2445] rounded text-[13px] text-slate-400 hover:text-slate-200 hover:bg-[#1a1028] transition-colors">
             Отмена
           </button>
           <button
             onClick={handleSave}
             disabled={!host.trim() || !port.trim()}
-            className="flex-1 py-2 bg-blue-600 rounded text-[13px] text-white hover:bg-blue-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 py-2 bg-violet-600 rounded text-[13px] text-white hover:bg-violet-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {proxy ? "Сохранить" : "Добавить"}
           </button>
@@ -620,7 +620,7 @@ function RunModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-[#141920] border border-[#1e2837] rounded-xl shadow-2xl w-full max-w-md p-6 space-y-5 animate-fade-in">
+      <div className="bg-[#1a1028] border border-[#2f2445] rounded-xl shadow-2xl w-full max-w-md p-6 space-y-5 animate-fade-in">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded bg-emerald-600/20 border border-emerald-600/30 flex items-center justify-center">
@@ -631,7 +631,7 @@ function RunModal({
               <div className="text-[11px] text-slate-500">Выберите аккаунты для запуска</div>
             </div>
           </div>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1a2333] text-slate-500 hover:text-slate-300 transition-colors">
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#251a38] text-slate-500 hover:text-slate-300 transition-colors">
             <Icon name="X" size={15} />
           </button>
         </div>
@@ -639,13 +639,13 @@ function RunModal({
         <div className="flex items-center gap-2">
           <button
             onClick={selectAll}
-            className="px-3 py-1.5 bg-[#0c1017] border border-[#1e2837] rounded text-[12px] text-slate-400 hover:text-slate-200 hover:bg-[#1a2333] transition-colors"
+            className="px-3 py-1.5 bg-[#0a0612] border border-[#2f2445] rounded text-[12px] text-slate-400 hover:text-slate-200 hover:bg-[#251a38] transition-colors"
           >
             Выбрать все
           </button>
           <button
             onClick={clearAll}
-            className="px-3 py-1.5 bg-[#0c1017] border border-[#1e2837] rounded text-[12px] text-slate-400 hover:text-slate-200 hover:bg-[#1a2333] transition-colors"
+            className="px-3 py-1.5 bg-[#0a0612] border border-[#2f2445] rounded text-[12px] text-slate-400 hover:text-slate-200 hover:bg-[#251a38] transition-colors"
           >
             Снять выбор
           </button>
@@ -666,15 +666,15 @@ function RunModal({
                 key={account.id}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded border cursor-pointer transition-colors ${
                   selected.has(account.id)
-                    ? "bg-[#1a2c42] border-blue-500/30"
-                    : "bg-[#0c1017] border-[#1e2837] hover:bg-[#141920]"
+                    ? "bg-[#2a1845] border-violet-500/30"
+                    : "bg-[#0a0612] border-[#2f2445] hover:bg-[#1a1028]"
                 }`}
               >
                 <input
                   type="checkbox"
                   checked={selected.has(account.id)}
                   onChange={() => toggle(account.id)}
-                  className="w-3.5 h-3.5 accent-blue-500"
+                  className="w-3.5 h-3.5 accent-violet-500"
                 />
                 <div className="flex-1 min-w-0">
                   <div className="text-[12px] text-slate-200 truncate font-mono">{account.login}</div>
@@ -689,7 +689,7 @@ function RunModal({
         <div className="flex gap-2 pt-1">
           <button
             onClick={onClose}
-            className="flex-1 py-2 bg-[#0c1017] border border-[#1e2837] rounded text-[13px] text-slate-400 hover:text-slate-200 hover:bg-[#141920] transition-colors"
+            className="flex-1 py-2 bg-[#0a0612] border border-[#2f2445] rounded text-[13px] text-slate-400 hover:text-slate-200 hover:bg-[#1a1028] transition-colors"
           >
             Отмена
           </button>
@@ -718,7 +718,7 @@ function ConfirmDeleteModal({
 }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
-      <div className="bg-[#0e1520] border border-[#1e2837] rounded-xl shadow-2xl w-80 p-5 space-y-4">
+      <div className="bg-[#0f0a1a] border border-[#2f2445] rounded-xl shadow-2xl w-80 p-5 space-y-4">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded bg-red-600/20 border border-red-600/30 flex items-center justify-center flex-shrink-0">
             <Icon name="Trash2" size={15} className="text-red-400" />
@@ -731,7 +731,7 @@ function ConfirmDeleteModal({
         <div className="flex gap-2">
           <button
             onClick={onCancel}
-            className="flex-1 py-2 bg-[#0c1017] border border-[#1e2837] rounded text-[13px] text-slate-400 hover:text-slate-200 hover:bg-[#141920] transition-colors"
+            className="flex-1 py-2 bg-[#0a0612] border border-[#2f2445] rounded text-[13px] text-slate-400 hover:text-slate-200 hover:bg-[#1a1028] transition-colors"
           >
             Отмена
           </button>
@@ -1144,10 +1144,10 @@ export default function Index() {
     !q || l.message.toLowerCase().includes(q) || l.browser.toLowerCase().includes(q)
   );
 
-  const inputCls = "bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors";
+  const inputCls = "bg-[#0a0612] border border-[#2f2445] rounded px-3 py-2 text-[13px] text-slate-200 font-mono outline-none focus:border-violet-500/50 transition-colors";
 
   return (
-    <div className="flex h-screen bg-[#0c1017] font-ibm text-slate-300 overflow-hidden">
+    <div className="flex h-screen bg-[#0a0612] font-ibm text-slate-300 overflow-hidden">
 
       {/* Toast */}
       {toast && (
@@ -1172,15 +1172,13 @@ export default function Index() {
       )}
 
       {/* Sidebar */}
-      <aside className="w-56 flex-shrink-0 bg-[#0e1520] border-r border-[#1a2333] flex flex-col">
-        <div className="px-5 py-5 border-b border-[#1a2333]">
+      <aside className="w-56 flex-shrink-0 bg-[#0f0a1a] border-r border-[#2a1f3d] flex flex-col">
+        <div className="px-5 py-5 border-b border-[#2a1f3d]">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded bg-blue-600 flex items-center justify-center">
-              <Icon name="Globe" size={14} className="text-white" />
-            </div>
+            <img src="https://cdn.poehali.dev/projects/b92a8c65-f081-4684-87a0-bfb308c5c2e4/files/0d735473-25d1-47dd-8cce-17327ef9d26e.jpg" alt="MBA Browser" className="w-7 h-7 rounded" />
             <div>
-              <div className="text-[13px] font-semibold text-slate-100 leading-none">BrowserCtrl</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">v2.4.1</div>
+              <div className="text-[13px] font-semibold text-slate-100 leading-none">MBA Browser</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">v1.0.0</div>
             </div>
           </div>
         </div>
@@ -1192,8 +1190,8 @@ export default function Index() {
               onClick={() => setSection(item.id)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-[13px] transition-all duration-150 ${
                 section === item.id
-                  ? "bg-blue-600/20 text-blue-300 border border-blue-600/30"
-                  : "text-slate-400 hover:bg-[#141d2a] hover:text-slate-200"
+                  ? "bg-violet-600/20 text-violet-300 border border-violet-600/30"
+                  : "text-slate-400 hover:bg-[#1f1535] hover:text-slate-200"
               }`}
             >
               <Icon name={item.icon} size={15} />
@@ -1202,7 +1200,7 @@ export default function Index() {
           ))}
         </nav>
 
-        <div className="px-4 py-4 border-t border-[#1a2333]">
+        <div className="px-4 py-4 border-t border-[#2a1f3d]">
           <div className="flex items-center gap-2 text-[11px] text-slate-500 mb-2">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             {running} браузеров активно
@@ -1214,12 +1212,12 @@ export default function Index() {
       {/* Main */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Topbar */}
-        <header className="h-12 bg-[#0e1520] border-b border-[#1a2333] flex items-center px-6 gap-4 flex-shrink-0">
+        <header className="h-12 bg-[#0f0a1a] border-b border-[#2a1f3d] flex items-center px-6 gap-4 flex-shrink-0">
           <div className="text-[13px] font-medium text-slate-300">
             {nav.find(n => n.id === section)?.label}
           </div>
           <div className="flex-1" />
-          <div className="flex items-center gap-1 bg-[#141920] border border-[#1e2837] rounded px-3 py-1.5">
+          <div className="flex items-center gap-1 bg-[#1a1028] border border-[#2f2445] rounded px-3 py-1.5">
             <Icon name="Search" size={13} className="text-slate-500" />
             <input
               className="bg-transparent text-[12px] text-slate-300 placeholder-slate-600 outline-none w-40"
@@ -1228,10 +1226,10 @@ export default function Index() {
               onChange={e => setSearchQuery(e.target.value)}
             />
           </div>
-          <button className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1a2333] text-slate-400 hover:text-slate-200 transition-colors">
+          <button className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#251a38] text-slate-400 hover:text-slate-200 transition-colors">
             <Icon name="Bell" size={15} />
           </button>
-          <div className="w-7 h-7 rounded-full bg-blue-600/30 border border-blue-600/40 flex items-center justify-center text-[11px] text-blue-300 font-medium">А</div>
+          <div className="w-7 h-7 rounded-full bg-violet-600/30 border border-violet-600/40 flex items-center justify-center text-[11px] text-violet-300 font-medium">А</div>
         </header>
 
         {/* Content */}
@@ -1253,7 +1251,7 @@ export default function Index() {
               </div>
 
               <div className="grid grid-cols-3 gap-4">
-                <div className="col-span-2 bg-[#141920] border border-[#1e2837] rounded-lg p-5">
+                <div className="col-span-2 bg-[#1a1028] border border-[#2f2445] rounded-lg p-5">
                   <div className="text-[12px] font-medium text-slate-500 uppercase tracking-widest mb-4">Статус браузеров</div>
                   <div className="space-y-3">
                     {(isElectron ? liveBrowsers : mockBrowsers).slice(0, 6).map(b => (
@@ -1262,8 +1260,8 @@ export default function Index() {
                           {isElectron ? `Browser #${b.id}` : (b as typeof mockBrowsers[0]).name}
                         </div>
                         <StatusBadge status={isElectron ? b.status : (browserStates[b.id] ?? b.status)} />
-                        <div className="flex-1 bg-[#1a2333] rounded-full h-1.5">
-                          <div className="bg-blue-500 h-1.5 rounded-full transition-all" style={{ width: `${Math.min(b.cpu * 3, 100)}%` }} />
+                        <div className="flex-1 bg-[#251a38] rounded-full h-1.5">
+                          <div className="bg-violet-500 h-1.5 rounded-full transition-all" style={{ width: `${Math.min(b.cpu * 3, 100)}%` }} />
                         </div>
                         <div className="text-[11px] font-mono text-slate-500 w-16 text-right">{b.cpu}% CPU</div>
                       </div>
@@ -1274,7 +1272,7 @@ export default function Index() {
                   </div>
                 </div>
 
-                <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-5">
+                <div className="bg-[#1a1028] border border-[#2f2445] rounded-lg p-5">
                   <div className="text-[12px] font-medium text-slate-500 uppercase tracking-widest mb-4">Последние события</div>
                   <div className="space-y-3">
                     {logs.slice(0, 5).map(l => (
@@ -1290,33 +1288,33 @@ export default function Index() {
                 </div>
               </div>
 
-              <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-5">
+              <div className="bg-[#1a1028] border border-[#2f2445] rounded-lg p-5">
                 <div className="text-[12px] font-medium text-slate-500 uppercase tracking-widest mb-4">Быстрые действия</div>
                 <div className="flex gap-3">
                   <button
                     onClick={() => setLaunchModal(true)}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 rounded text-[13px] text-white hover:bg-blue-500 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 rounded text-[13px] text-white hover:bg-violet-500 transition-colors"
                   >
                     <Icon name="Plus" size={14} />
                     Запустить браузер
                   </button>
                   <button
                     onClick={() => setAccountModal({ open: true })}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-[#141920] border border-[#1e2837] rounded text-[13px] text-slate-300 hover:bg-[#1a2333] transition-colors"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-[#1a1028] border border-[#2f2445] rounded text-[13px] text-slate-300 hover:bg-[#251a38] transition-colors"
                   >
                     <Icon name="UserPlus" size={14} />
                     Добавить аккаунт
                   </button>
                   <button
                     onClick={() => setScenarioModal({ open: true })}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-[#141920] border border-[#1e2837] rounded text-[13px] text-slate-300 hover:bg-[#1a2333] transition-colors"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-[#1a1028] border border-[#2f2445] rounded text-[13px] text-slate-300 hover:bg-[#251a38] transition-colors"
                   >
                     <Icon name="Workflow" size={14} />
                     Создать сценарий
                   </button>
                   <button
                     onClick={() => setSection("logs")}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-[#141920] border border-[#1e2837] rounded text-[13px] text-slate-300 hover:bg-[#1a2333] transition-colors"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-[#1a1028] border border-[#2f2445] rounded text-[13px] text-slate-300 hover:bg-[#251a38] transition-colors"
                   >
                     <Icon name="ScrollText" size={14} />
                     Просмотр логов
@@ -1341,17 +1339,17 @@ export default function Index() {
                 </button>
                 <button
                   onClick={() => setLaunchModal(true)}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 transition-colors"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-violet-600 rounded text-[12px] text-white hover:bg-violet-500 transition-colors"
                 >
                   <Icon name="Plus" size={12} />
                   Новый браузер
                 </button>
               </div>
 
-              <div className="bg-[#141920] border border-[#1e2837] rounded-lg overflow-hidden">
+              <div className="bg-[#1a1028] border border-[#2f2445] rounded-lg overflow-hidden">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-[#1e2837]">
+                    <tr className="border-b border-[#2f2445]">
                       {["Браузер", "Статус", "Прокси", "Аккаунт", "CPU", "RAM", ""].map(h => (
                         <th key={h} className="text-left px-4 py-3 text-[11px] font-medium text-slate-500 uppercase tracking-widest">{h}</th>
                       ))}
@@ -1363,7 +1361,7 @@ export default function Index() {
                         ? b.status
                         : (browserStates[b.id] ?? b.status);
                       return (
-                        <tr key={b.id} className={`border-b border-[#1a2333] hover:bg-[#1a2333]/50 transition-colors ${i === filteredBrowsers.length - 1 ? "border-b-0" : ""}`}>
+                        <tr key={b.id} className={`border-b border-[#2a1f3d] hover:bg-[#251a38]/50 transition-colors ${i === filteredBrowsers.length - 1 ? "border-b-0" : ""}`}>
                           <td className="px-4 py-3 font-mono text-[12px] text-slate-200">
                             <div>{b.name}</div>
                             {b.totalSteps > 0 && (
@@ -1377,8 +1375,8 @@ export default function Index() {
                           <td className="px-4 py-3 font-mono text-[11px] text-slate-400">{b.account}</td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <div className="w-12 bg-[#1a2333] rounded-full h-1">
-                                <div className="bg-blue-500 h-1 rounded-full" style={{ width: `${Math.min(b.cpu * 2, 100)}%` }} />
+                              <div className="w-12 bg-[#251a38] rounded-full h-1">
+                                <div className="bg-violet-500 h-1 rounded-full" style={{ width: `${Math.min(b.cpu * 2, 100)}%` }} />
                               </div>
                               <span className="text-[11px] font-mono text-slate-500">{b.cpu}%</span>
                             </div>
@@ -1388,21 +1386,21 @@ export default function Index() {
                             <div className="flex gap-1">
                               <button
                                 onClick={() => setBrowserStatus(b.id, "running")}
-                                className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${currentStatus === "running" ? "text-emerald-400 bg-emerald-500/10" : "text-slate-500 hover:text-emerald-400 hover:bg-[#1e2837]"}`}
+                                className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${currentStatus === "running" ? "text-emerald-400 bg-emerald-500/10" : "text-slate-500 hover:text-emerald-400 hover:bg-[#2a1f3d]"}`}
                                 title="Запустить"
                               >
                                 <Icon name="Play" size={11} />
                               </button>
                               <button
                                 onClick={() => setBrowserStatus(b.id, "paused")}
-                                className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${currentStatus === "paused" ? "text-amber-400 bg-amber-500/10" : "text-slate-500 hover:text-amber-400 hover:bg-[#1e2837]"}`}
+                                className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${currentStatus === "paused" ? "text-amber-400 bg-amber-500/10" : "text-slate-500 hover:text-amber-400 hover:bg-[#2a1f3d]"}`}
                                 title="Пауза"
                               >
                                 <Icon name="Pause" size={11} />
                               </button>
                               <button
                                 onClick={() => setBrowserStatus(b.id, "stopped")}
-                                className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${currentStatus === "stopped" ? "text-slate-300 bg-slate-500/10" : "text-slate-500 hover:text-slate-300 hover:bg-[#1e2837]"}`}
+                                className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${currentStatus === "stopped" ? "text-slate-300 bg-slate-500/10" : "text-slate-500 hover:text-slate-300 hover:bg-[#2a1f3d]"}`}
                                 title="Остановить"
                               >
                                 <Icon name="Square" size={11} />
@@ -1432,17 +1430,17 @@ export default function Index() {
                 <div className="flex-1" />
                 <button
                   onClick={() => setAccountModal({ open: true })}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 transition-colors"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-violet-600 rounded text-[12px] text-white hover:bg-violet-500 transition-colors"
                 >
                   <Icon name="Plus" size={12} />
                   Добавить аккаунт
                 </button>
               </div>
 
-              <div className="bg-[#141920] border border-[#1e2837] rounded-lg overflow-hidden">
+              <div className="bg-[#1a1028] border border-[#2f2445] rounded-lg overflow-hidden">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-[#1e2837]">
+                    <tr className="border-b border-[#2f2445]">
                       {["Логин", "Сайт", "Прокси", "Статус", "Последний вход", ""].map(h => (
                         <th key={h} className="text-left px-4 py-3 text-[11px] font-medium text-slate-500 uppercase tracking-widest">{h}</th>
                       ))}
@@ -1450,7 +1448,7 @@ export default function Index() {
                   </thead>
                   <tbody>
                     {filteredAccounts.map((a, i) => (
-                      <tr key={a.id} className={`border-b border-[#1a2333] hover:bg-[#1a2333]/50 transition-colors ${i === filteredAccounts.length - 1 ? "border-b-0" : ""}`}>
+                      <tr key={a.id} className={`border-b border-[#2a1f3d] hover:bg-[#251a38]/50 transition-colors ${i === filteredAccounts.length - 1 ? "border-b-0" : ""}`}>
                         <td className="px-4 py-3 font-mono text-[12px] text-slate-200">{a.login}</td>
                         <td className="px-4 py-3 text-[12px] text-slate-400">{a.site || "—"}</td>
                         <td className="px-4 py-3 font-mono text-[11px] text-slate-500">{a.proxy || "—"}</td>
@@ -1460,7 +1458,7 @@ export default function Index() {
                           <div className="flex gap-1">
                             <button
                               onClick={() => setAccountModal({ open: true, account: a })}
-                              className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"
+                              className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#2a1f3d] text-slate-500 hover:text-slate-300 transition-colors"
                             >
                               <Icon name="Pencil" size={11} />
                             </button>
@@ -1494,7 +1492,7 @@ export default function Index() {
                 <div className="flex-1" />
                 <button
                   onClick={() => setScenarioModal({ open: true })}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 transition-colors"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-violet-600 rounded text-[12px] text-white hover:bg-violet-500 transition-colors"
                 >
                   <Icon name="Plus" size={12} />
                   Новый сценарий
@@ -1502,7 +1500,7 @@ export default function Index() {
               </div>
 
               {filteredScenarios.length === 0 ? (
-                <div className="bg-[#141920] border border-[#1e2837] rounded-lg py-16 text-center">
+                <div className="bg-[#1a1028] border border-[#2f2445] rounded-lg py-16 text-center">
                   <Icon name="Workflow" size={32} className="mx-auto mb-3 text-slate-600 opacity-50" />
                   <div className="text-[14px] text-slate-500 mb-1">
                     {scenarios.length === 0 ? "Сценариев нет" : "Сценарии не найдены"}
@@ -1514,10 +1512,10 @@ export default function Index() {
               ) : (
                 <div className="grid grid-cols-1 gap-3">
                   {filteredScenarios.map(s => (
-                    <div key={s.id} className="bg-[#141920] border border-[#1e2837] rounded-lg p-4 hover:border-[#2a3a50] transition-colors">
+                    <div key={s.id} className="bg-[#1a1028] border border-[#2f2445] rounded-lg p-4 hover:border-[#3a2855] transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded bg-blue-600/10 border border-blue-600/20 flex items-center justify-center flex-shrink-0">
-                          <Icon name="Workflow" size={16} className="text-blue-400" />
+                        <div className="w-9 h-9 rounded bg-violet-600/10 border border-violet-600/20 flex items-center justify-center flex-shrink-0">
+                          <Icon name="Workflow" size={16} className="text-violet-400" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-[13px] font-medium text-slate-100 truncate">{s.name}</div>
@@ -1534,7 +1532,7 @@ export default function Index() {
                           </button>
                           <button
                             onClick={() => setScenarioModal({ open: true, scenario: s })}
-                            className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"
+                            className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#2a1f3d] text-slate-500 hover:text-slate-300 transition-colors"
                           >
                             <Icon name="Pencil" size={12} />
                           </button>
@@ -1569,8 +1567,8 @@ export default function Index() {
                       onClick={() => setLogFilter(f.key)}
                       className={`px-3 py-1.5 rounded text-[11px] font-medium border transition-colors capitalize ${
                         logFilter === f.key
-                          ? "bg-blue-600/20 border-blue-500/40 text-blue-300"
-                          : "bg-[#141920] border-[#1e2837] text-slate-400 hover:text-slate-200 hover:border-[#2a3a50]"
+                          ? "bg-violet-600/20 border-violet-500/40 text-violet-300"
+                          : "bg-[#1a1028] border-[#2f2445] text-slate-400 hover:text-slate-200 hover:border-[#3a2855]"
                       }`}
                     >
                       {f.label}
@@ -1580,27 +1578,27 @@ export default function Index() {
                 <div className="flex-1" />
                 <button
                   onClick={exportLogs}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-[#141920] border border-[#1e2837] rounded text-[12px] text-slate-400 hover:bg-[#1a2333] transition-colors"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-[#1a1028] border border-[#2f2445] rounded text-[12px] text-slate-400 hover:bg-[#251a38] transition-colors"
                 >
                   <Icon name="Download" size={12} />Экспорт
                 </button>
                 <button
                   onClick={clearLogs}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-[#141920] border border-[#1e2837] rounded text-[12px] text-slate-400 hover:bg-[#1a2333] transition-colors"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-[#1a1028] border border-[#2f2445] rounded text-[12px] text-slate-400 hover:bg-[#251a38] transition-colors"
                 >
                   <Icon name="Trash2" size={12} />Очистить
                 </button>
               </div>
 
-              <div className="bg-[#141920] border border-[#1e2837] rounded-lg overflow-hidden">
-                <div className="border-b border-[#1e2837] px-4 py-2.5 flex gap-6">
+              <div className="bg-[#1a1028] border border-[#2f2445] rounded-lg overflow-hidden">
+                <div className="border-b border-[#2f2445] px-4 py-2.5 flex gap-6">
                   {["Время", "Уровень", "Браузер", "Сообщение"].map(h => (
                     <div key={h} className={`text-[11px] font-medium text-slate-500 uppercase tracking-widest ${h === "Сообщение" ? "flex-1" : h === "Браузер" ? "w-28" : "w-20"}`}>{h}</div>
                   ))}
                 </div>
                 <div className="divide-y divide-[#1a2333]">
                   {filteredLogs.map(l => (
-                    <div key={l.id} className="flex items-start gap-6 px-4 py-2.5 hover:bg-[#1a2333]/40 transition-colors">
+                    <div key={l.id} className="flex items-start gap-6 px-4 py-2.5 hover:bg-[#251a38]/40 transition-colors">
                       <div className="w-20 font-mono text-[11px] text-slate-600 mt-0.5">{l.time}</div>
                       <div className="w-20 mt-0.5"><LogBadge level={l.level} /></div>
                       <div className="w-28 font-mono text-[11px] text-slate-400 mt-0.5">{l.browser}</div>
@@ -1621,14 +1619,14 @@ export default function Index() {
           {/* SETTINGS */}
           {section === "settings" && (
             <div className="space-y-4 animate-fade-in">
-              <div className="flex border-b border-[#1e2837] gap-4 pb-0 mb-2">
+              <div className="flex border-b border-[#2f2445] gap-4 pb-0 mb-2">
                 {["Общие", "Прокси"].map(t => (
                   <button
                     key={t}
                     onClick={() => setProxyTab(t === "Прокси")}
                     className={`pb-3 text-[13px] font-medium transition-colors border-b-2 -mb-px ${
                       (t === "Прокси") === proxyTab
-                        ? "text-blue-400 border-blue-500"
+                        ? "text-violet-400 border-violet-500"
                         : "text-slate-500 border-transparent hover:text-slate-300"
                     }`}
                   >
@@ -1640,7 +1638,7 @@ export default function Index() {
               {!proxyTab && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-4">
+                    <div className="bg-[#1a1028] border border-[#2f2445] rounded-lg p-4">
                       <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-2">Макс. параллельных браузеров</div>
                       <input
                         value={settings.maxBrowsers}
@@ -1649,7 +1647,7 @@ export default function Index() {
                         className={`w-full ${inputCls}`}
                       />
                     </div>
-                    <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-4">
+                    <div className="bg-[#1a1028] border border-[#2f2445] rounded-lg p-4">
                       <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-2">Таймаут подключения (сек)</div>
                       <input
                         value={settings.connectionTimeout}
@@ -1658,7 +1656,7 @@ export default function Index() {
                         className={`w-full ${inputCls}`}
                       />
                     </div>
-                    <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-4">
+                    <div className="bg-[#1a1028] border border-[#2f2445] rounded-lg p-4">
                       <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-2">Интервал ротации прокси (мин)</div>
                       <input
                         value={settings.proxyRotationInterval}
@@ -1667,7 +1665,7 @@ export default function Index() {
                         className={`w-full ${inputCls}`}
                       />
                     </div>
-                    <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-4">
+                    <div className="bg-[#1a1028] border border-[#2f2445] rounded-lg p-4">
                       <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-2">Путь к Chromium</div>
                       <div className="flex gap-2">
                         <input
@@ -1687,7 +1685,7 @@ export default function Index() {
                               setChromeCheckMsg("");
                             }
                           }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1e2837] border border-[#2a3a50] rounded text-[12px] text-slate-300 hover:bg-[#253347] hover:text-white transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2a1f3d] border border-[#3a2855] rounded text-[12px] text-slate-300 hover:bg-[#352550] hover:text-white transition-colors"
                         >
                           <Icon name="FolderOpen" size={13} />
                           Выбрать
@@ -1718,7 +1716,7 @@ export default function Index() {
                             }
                           }}
                           disabled={chromeCheckStatus === "checking"}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1e2837] border border-[#2a3a50] rounded text-[12px] text-slate-300 hover:bg-[#253347] hover:text-white transition-colors disabled:opacity-50"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2a1f3d] border border-[#3a2855] rounded text-[12px] text-slate-300 hover:bg-[#352550] hover:text-white transition-colors disabled:opacity-50"
                         >
                           <Icon name={chromeCheckStatus === "checking" ? "Loader" : "PlayCircle"} size={13} className={chromeCheckStatus === "checking" ? "animate-spin" : ""} />
                           Проверить
@@ -1731,7 +1729,7 @@ export default function Index() {
                         </div>
                       )}
                     </div>
-                    <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-4">
+                    <div className="bg-[#1a1028] border border-[#2f2445] rounded-lg p-4">
                       <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-2">Директория профилей</div>
                       <input
                         value={settings.profilesDir}
@@ -1740,7 +1738,7 @@ export default function Index() {
                         className={`w-full ${inputCls}`}
                       />
                     </div>
-                    <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-4">
+                    <div className="bg-[#1a1028] border border-[#2f2445] rounded-lg p-4">
                       <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-2">Директория логов</div>
                       <input
                         value={settings.logsDir}
@@ -1750,7 +1748,7 @@ export default function Index() {
                       />
                     </div>
 
-                    <div className="bg-[#141920] border border-[#1e2837] rounded-lg p-4 col-span-2">
+                    <div className="bg-[#1a1028] border border-[#2f2445] rounded-lg p-4 col-span-2">
                       <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-3">Опции запуска</div>
                       <div className="grid grid-cols-2 gap-1">
                         {([
@@ -1765,7 +1763,7 @@ export default function Index() {
                             onClick={() => setSettings(s => ({ ...s, [opt.key]: !s[opt.key] }))}
                             className="flex items-center gap-3 py-1.5 text-left group"
                           >
-                            <div className={`w-8 h-4 rounded-full transition-colors flex-shrink-0 ${settings[opt.key] ? "bg-blue-600" : "bg-[#1e2837]"}`}>
+                            <div className={`w-8 h-4 rounded-full transition-colors flex-shrink-0 ${settings[opt.key] ? "bg-violet-600" : "bg-[#2a1f3d]"}`}>
                               <div className={`w-3 h-3 rounded-full bg-white mt-0.5 transition-transform ${settings[opt.key] ? "translate-x-4 ml-0.5" : "ml-0.5"}`} />
                             </div>
                             <span className="text-[12px] text-slate-400 group-hover:text-slate-300 transition-colors">{opt.label}</span>
@@ -1778,7 +1776,7 @@ export default function Index() {
                   <div className="flex justify-end">
                     <button
                       onClick={saveSettings}
-                      className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 rounded text-[13px] text-white hover:bg-blue-500 transition-colors"
+                      className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 rounded text-[13px] text-white hover:bg-violet-500 transition-colors"
                     >
                       <Icon name="Save" size={14} />
                       Сохранить настройки
@@ -1793,15 +1791,15 @@ export default function Index() {
                     <div className="text-[12px] text-slate-500">{proxies.length} прокси-серверов</div>
                     <button
                       onClick={() => setProxyModal({ open: true })}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 rounded text-[12px] text-white hover:bg-blue-500 transition-colors"
+                      className="flex items-center gap-2 px-3 py-1.5 bg-violet-600 rounded text-[12px] text-white hover:bg-violet-500 transition-colors"
                     >
                       <Icon name="Plus" size={12} />Добавить прокси
                     </button>
                   </div>
-                  <div className="bg-[#141920] border border-[#1e2837] rounded-lg overflow-hidden">
+                  <div className="bg-[#1a1028] border border-[#2f2445] rounded-lg overflow-hidden">
                     <table className="w-full">
                       <thead>
-                        <tr className="border-b border-[#1e2837]">
+                        <tr className="border-b border-[#2f2445]">
                           {["Хост", "Порт", "Тип", "Страна", "Статус", "Скорость", ""].map(h => (
                             <th key={h} className="text-left px-4 py-3 text-[11px] font-medium text-slate-500 uppercase tracking-widest">{h}</th>
                           ))}
@@ -1809,18 +1807,18 @@ export default function Index() {
                       </thead>
                       <tbody>
                         {proxies.map((p, i) => (
-                          <tr key={p.id} className={`border-b border-[#1a2333] hover:bg-[#1a2333]/50 transition-colors ${i === proxies.length - 1 ? "border-b-0" : ""}`}>
+                          <tr key={p.id} className={`border-b border-[#2a1f3d] hover:bg-[#251a38]/50 transition-colors ${i === proxies.length - 1 ? "border-b-0" : ""}`}>
                             <td className="px-4 py-3 font-mono text-[12px] text-slate-200">{p.host}</td>
                             <td className="px-4 py-3 font-mono text-[12px] text-slate-400">{p.port}</td>
                             <td className="px-4 py-3">
-                              <span className="text-[11px] font-mono font-medium text-slate-400 bg-[#1a2333] border border-[#2a3a50] px-2 py-0.5 rounded">{p.type}</span>
+                              <span className="text-[11px] font-mono font-medium text-slate-400 bg-[#251a38] border border-[#3a2855] px-2 py-0.5 rounded">{p.type}</span>
                             </td>
                             <td className="px-4 py-3 text-[12px] text-slate-400">{p.country}</td>
                             <td className="px-4 py-3"><StatusBadge status={p.status} /></td>
                             <td className="px-4 py-3">
                               {p.speed > 0 ? (
                                 <div className="flex items-center gap-2">
-                                  <div className="w-16 bg-[#1a2333] rounded-full h-1">
+                                  <div className="w-16 bg-[#251a38] rounded-full h-1">
                                     <div className="bg-emerald-500 h-1 rounded-full" style={{ width: `${Math.min((p.speed / 500) * 100, 100)}%` }} />
                                   </div>
                                   <span className="text-[11px] font-mono text-slate-500">{p.speed}ms</span>
@@ -1831,14 +1829,14 @@ export default function Index() {
                               <div className="flex gap-1">
                                 <button
                                   onClick={() => refreshProxy(p.id)}
-                                  className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-emerald-400 transition-colors"
+                                  className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#2a1f3d] text-slate-500 hover:text-emerald-400 transition-colors"
                                   title="Проверить"
                                 >
                                   <Icon name="RefreshCw" size={11} />
                                 </button>
                                 <button
                                   onClick={() => setProxyModal({ open: true, proxy: p })}
-                                  className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#1e2837] text-slate-500 hover:text-slate-300 transition-colors"
+                                  className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#2a1f3d] text-slate-500 hover:text-slate-300 transition-colors"
                                   title="Редактировать"
                                 >
                                   <Icon name="Pencil" size={11} />
@@ -1910,17 +1908,17 @@ export default function Index() {
       {/* Launch Browser Modal */}
       {launchModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0e1520] border border-[#1e2837] rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-5">
+          <div className="bg-[#0f0a1a] border border-[#2f2445] rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded bg-blue-600/20 border border-blue-600/30 flex items-center justify-center">
-                  <Icon name="Monitor" size={15} className="text-blue-400" />
+                <div className="w-8 h-8 rounded bg-violet-600/20 border border-violet-600/30 flex items-center justify-center">
+                  <Icon name="Monitor" size={15} className="text-violet-400" />
                 </div>
                 <div className="text-[14px] font-semibold text-slate-100">Запустить браузер</div>
               </div>
               <button
                 onClick={() => { setLaunchModal(false); setLaunchError(""); setLaunchResult(null); }}
-                className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#1a2333] text-slate-500 hover:text-slate-300 transition-colors"
+                className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#251a38] text-slate-500 hover:text-slate-300 transition-colors"
               >
                 <Icon name="X" size={15} />
               </button>
@@ -1934,7 +1932,7 @@ export default function Index() {
                   onChange={e => setLaunchUrl(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && handleLaunch()}
                   placeholder="https://example.com"
-                  className="w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2.5 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-600"
+                  className="w-full bg-[#0a0612] border border-[#2f2445] rounded px-3 py-2.5 text-[13px] text-slate-200 font-mono outline-none focus:border-violet-500/50 transition-colors placeholder-slate-600"
                 />
               </div>
               <div>
@@ -1945,7 +1943,7 @@ export default function Index() {
                   value={launchProxy}
                   onChange={e => setLaunchProxy(e.target.value)}
                   placeholder="host:port  или  user:pass@host:port"
-                  className="w-full bg-[#0c1017] border border-[#1e2837] rounded px-3 py-2.5 text-[13px] text-slate-200 font-mono outline-none focus:border-blue-500/50 transition-colors placeholder-slate-600"
+                  className="w-full bg-[#0a0612] border border-[#2f2445] rounded px-3 py-2.5 text-[13px] text-slate-200 font-mono outline-none focus:border-violet-500/50 transition-colors placeholder-slate-600"
                 />
               </div>
             </div>
@@ -1967,14 +1965,14 @@ export default function Index() {
             <div className="flex gap-2">
               <button
                 onClick={() => setLaunchModal(false)}
-                className="flex-1 py-2 bg-[#0c1017] border border-[#1e2837] rounded text-[13px] text-slate-400 hover:text-slate-200 hover:bg-[#141920] transition-colors"
+                className="flex-1 py-2 bg-[#0a0612] border border-[#2f2445] rounded text-[13px] text-slate-400 hover:text-slate-200 hover:bg-[#1a1028] transition-colors"
               >
                 Отмена
               </button>
               <button
                 onClick={handleLaunch}
                 disabled={launchLoading || !launchUrl.trim()}
-                className="flex-1 py-2 bg-blue-600 rounded text-[13px] text-white hover:bg-blue-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 py-2 bg-violet-600 rounded text-[13px] text-white hover:bg-violet-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {launchLoading && <Icon name="Loader2" size={13} className="animate-spin" />}
                 {launchLoading ? "Запуск..." : "Запустить"}

@@ -426,7 +426,7 @@ async function executeStep(page, step, browserId) {
 
     case 'screenshot': {
       const name = params.name || `screenshot-${Date.now()}.png`
-      const screenshotDir = path.join(os.homedir(), '.browserctrl', 'screenshots')
+      const screenshotDir = path.join(os.homedir(), '.mba-browser', 'screenshots')
       fs.mkdirSync(screenshotDir, { recursive: true })
       const filePath = path.join(screenshotDir, name)
       await page.screenshot({ path: filePath, fullPage: false })
@@ -488,7 +488,7 @@ async function launchBrowser({ url, proxy, chromePath, headless = false, account
   if (settings && settings.saveCookies && account) {
     const profilesBase = settings.profilesDir
       ? settings.profilesDir.replace('~', os.homedir())
-      : path.join(os.homedir(), '.browserctrl', 'profiles')
+      : path.join(os.homedir(), '.mba-browser', 'profiles')
     userDataDir = path.join(profilesBase, account.replace(/[^a-zA-Z0-9_-]/g, '_'))
     fs.mkdirSync(userDataDir, { recursive: true })
   }

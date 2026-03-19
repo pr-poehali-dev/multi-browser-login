@@ -179,7 +179,7 @@ async function executeStep(id, page, step, vars = {}) {
 
     case 'screenshot': {
       const name = resolve(p.name) || `screenshot_${Date.now()}.png`;
-      const dir = path.join(os.homedir(), 'BrowserCtrl', 'screenshots');
+      const dir = path.join(os.homedir(), 'MBABrowser', 'screenshots');
       fs.mkdirSync(dir, { recursive: true });
       const filePath = path.join(dir, name);
       await page.screenshot({ path: filePath, fullPage: false });
@@ -204,7 +204,7 @@ async function launchBrowser(opts = {}) {
   }
 
   const id = nextId++;
-  const profilesDir = settings.profilesDir || path.join(os.homedir(), 'BrowserCtrl', 'profiles');
+  const profilesDir = settings.profilesDir || path.join(os.homedir(), 'MBABrowser', 'profiles');
   const userDataDir = path.join(profilesDir, `session_${id}`);
   fs.mkdirSync(userDataDir, { recursive: true });
 

@@ -1,8 +1,8 @@
 {
-  "name": "browserctrl",
-  "productName": "BrowserCtrl",
+  "name": "mba-browser",
+  "productName": "MBA Browser",
   "version": "1.0.0",
-  "description": "BrowserCtrl Desktop App",
+  "description": "MBA Browser Desktop App",
   "main": "electron.js",
   "scripts": {
     "start": "electron .",
@@ -12,8 +12,8 @@
     "dist:all": "electron-builder --mac --win --linux"
   },
   "build": {
-    "appId": "dev.browserctrl.app",
-    "productName": "BrowserCtrl",
+    "appId": "dev.mba-browser.app",
+    "productName": "MBA Browser",
     "files": [
       "electron.js",
       "preload.js",
@@ -32,7 +32,7 @@
       ]
     },
     "dmg": {
-      "title": "BrowserCtrl",
+      "title": "MBA Browser",
       "backgroundColor": "#0d1117"
     },
     "win": {

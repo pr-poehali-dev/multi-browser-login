@@ -1,5 +1,5 @@
 #!/bin/bash
-# BrowserCtrl — установка и запуск одной командой
+# MBA Browser — установка и запуск одной командой
 # Использование: bash install.sh
 
 set -e
@@ -12,7 +12,7 @@ NC='\033[0m'
 
 echo ""
 echo -e "${CYAN}╔══════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║        BrowserCtrl — установка       ║${NC}"
+echo -e "${CYAN}║       MBA Browser — установка        ║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════╝${NC}"
 echo ""
 
