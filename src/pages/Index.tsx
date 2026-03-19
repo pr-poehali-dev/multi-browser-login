@@ -424,7 +424,32 @@ function ScenarioModal({
                 {activeDef.fields.map(field => (
                   <div key={field.key}>
                     <label className="block text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-1.5">{field.label}</label>
-                    {active.type === "condition" && field.key === "action" ? (
+                    {active.type === "scroll" && field.key === "direction" ? (
+                      <div className="flex gap-2">
+                        {[
+                          { value: "down", icon: "ArrowDown", label: "Вниз" },
+                          { value: "up", icon: "ArrowUp", label: "Вверх" },
+                          { value: "to-element", icon: "Crosshair", label: "К элементу" },
+                        ].map(opt => {
+                          const selected = (active.params.direction || "down") === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              onClick={() => updateParam(active.id, "direction", opt.value)}
+                              className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded border text-[11px] font-medium transition-all ${
+                                selected
+                                  ? "border-slate-500/50 bg-slate-500/15 text-slate-200"
+                                  : "border-[#2f2445] bg-[#0a0612] text-slate-500 hover:border-[#3a2855] hover:bg-[#1a1028] hover:text-slate-300"
+                              }`}
+                            >
+                              <Icon name={opt.icon} size={15} />
+                              {opt.label}
+                              {selected && <div className="w-1 h-1 rounded-full bg-slate-400" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : active.type === "condition" && field.key === "action" ? (
                       <div className="space-y-2">
                         {[
                           { value: "skip", icon: "SkipForward", label: "Пропустить шаг", desc: "Если элемент найден — перейти к следующему шагу", color: "border-amber-500/40 bg-amber-500/10 text-amber-300" },
