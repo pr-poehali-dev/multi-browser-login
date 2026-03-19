@@ -92,7 +92,7 @@ const defaultSettings: Settings = {
   maxBrowsers: 16,
   connectionTimeout: 30,
   proxyRotationInterval: 15,
-  chromiumPath: "/usr/bin/chromium",
+  chromiumPath: "",
   profilesDir: "~/.mba-browser/profiles",
   logsDir: "~/.mba-browser/logs",
   headless: true,

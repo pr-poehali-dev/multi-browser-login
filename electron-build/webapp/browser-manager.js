@@ -204,7 +204,8 @@ async function launchBrowser(opts = {}) {
   }
 
   const id = nextId++;
-  const profilesDir = settings.profilesDir || path.join(os.homedir(), 'MBABrowser', 'profiles');
+  const rawProfilesDir = settings.profilesDir || path.join(os.homedir(), 'MBABrowser', 'profiles');
+  const profilesDir = rawProfilesDir.replace(/^~/, os.homedir());
   const userDataDir = path.join(profilesDir, `session_${id}`);
   fs.mkdirSync(userDataDir, { recursive: true });
 
