@@ -1357,6 +1357,7 @@ export default function Index() {
         status: b.status,
         proxy: b.proxy ?? "—",
         account: b.account ?? "—",
+        scenarioName: b.scenarioName ?? "",
         cpu: b.cpu,
         mem: b.mem,
         currentStep: b.currentStep,
@@ -1366,6 +1367,7 @@ export default function Index() {
         ...b,
         cpu: mockStats[b.id]?.cpu ?? b.cpu,
         mem: mockStats[b.id]?.mem ?? b.mem,
+        scenarioName: "",
         currentStep: 0,
         totalSteps: 0,
       }));
@@ -1591,7 +1593,7 @@ export default function Index() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-[#2f2445]">
-                      {["Браузер", "Статус", "Прокси", "Аккаунт", "CPU", "RAM", ""].map(h => (
+                      {["Браузер", "Прогресс", "Статус", "Аккаунт", "CPU", "RAM", ""].map(h => (
                         <th key={h} className="text-left px-4 py-3 text-[11px] font-medium text-slate-500 uppercase tracking-widest">{h}</th>
                       ))}
                     </tr>
@@ -1603,16 +1605,40 @@ export default function Index() {
                         : (browserStates[b.id] ?? b.status);
                       return (
                         <tr key={b.id} className={`border-b border-[#2a1f3d] hover:bg-[#251a38]/50 transition-colors ${i === filteredBrowsers.length - 1 ? "border-b-0" : ""}`}>
-                          <td className="px-4 py-3 font-mono text-[12px] text-slate-200">
-                            <div>{b.name}</div>
-                            {b.totalSteps > 0 && (
-                              <div className="text-[10px] text-slate-600 font-mono mt-0.5">
-                                {b.currentStep}/{b.totalSteps} шагов
+                          <td className="px-4 py-3">
+                            <div className="font-mono text-[12px] text-slate-200">{b.name}</div>
+                            {b.scenarioName && (
+                              <div className="text-[10px] text-slate-500 mt-0.5 truncate max-w-[140px]">{b.scenarioName}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {b.totalSteps > 0 ? (
+                              <div className="min-w-[120px]">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-[11px] font-mono text-slate-400">
+                                    {b.currentStep}/{b.totalSteps}
+                                  </span>
+                                  <span className="text-[11px] font-mono text-slate-500">
+                                    {Math.round((b.currentStep / b.totalSteps) * 100)}%
+                                  </span>
+                                </div>
+                                <div className="w-full bg-[#251a38] rounded-full h-1.5">
+                                  <div
+                                    className={`h-1.5 rounded-full transition-all duration-500 ${
+                                      currentStatus === "done" ? "bg-emerald-500" :
+                                      currentStatus === "error" ? "bg-red-500" :
+                                      currentStatus === "paused" ? "bg-amber-500" :
+                                      "bg-violet-500"
+                                    }`}
+                                    style={{ width: `${Math.round((b.currentStep / b.totalSteps) * 100)}%` }}
+                                  />
+                                </div>
                               </div>
+                            ) : (
+                              <span className="text-[11px] text-slate-600">—</span>
                             )}
                           </td>
                           <td className="px-4 py-3"><StatusBadge status={currentStatus} /></td>
-                          <td className="px-4 py-3 font-mono text-[11px] text-slate-400">{b.proxy}</td>
                           <td className="px-4 py-3 font-mono text-[11px] text-slate-400">{b.account}</td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
