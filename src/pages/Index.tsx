@@ -1949,6 +1949,25 @@ export default function Index() {
                         </button>
                         <button
                           onClick={async () => {
+                            const api = getElectronAPI();
+                            if (!api?.detectChrome) return;
+                            const res = await api.detectChrome();
+                            if (res.ok && res.path) {
+                              setSettings(s => ({ ...s, chromiumPath: res.path as string }));
+                              setChromeCheckStatus("ok");
+                              setChromeCheckMsg("Chrome найден автоматически");
+                            } else {
+                              setChromeCheckStatus("error");
+                              setChromeCheckMsg("Chrome не найден — укажи путь вручную");
+                            }
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2a1f3d] border border-[#3a2855] rounded text-[12px] text-slate-300 hover:bg-[#352550] hover:text-white transition-colors"
+                        >
+                          <Icon name="Search" size={13} />
+                          Найти
+                        </button>
+                        <button
+                          onClick={async () => {
                             setChromeCheckStatus("checking");
                             setChromeCheckMsg("");
                             const api = getElectronAPI();
