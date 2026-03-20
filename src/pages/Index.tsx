@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 
 type Section = "dashboard" | "browsers" | "accounts" | "scenarios" | "logs" | "settings" | "install";
@@ -955,6 +955,7 @@ export default function Index() {
   // Logs state
   const [logs, setLogs] = useState(mockLogs);
   const [logFilter, setLogFilter] = useState<string>("all");
+  const [expandedBrowsers, setExpandedBrowsers] = useState<Set<number>>(new Set());
 
   // Browser states (mock, used when not in Electron)
   const [browserStates, setBrowserStates] = useState<Record<number, "running" | "paused" | "stopped">>(() => {
@@ -1603,13 +1604,27 @@ export default function Index() {
                       const currentStatus = isElectron
                         ? b.status
                         : (browserStates[b.id] ?? b.status);
+                      const isExpanded = expandedBrowsers.has(b.id);
+                      const browserLogs = logs.filter(l => l.browser === `Browser #${b.id}`).slice(0, 5);
                       return (
-                        <tr key={b.id} className={`border-b border-[#2a1f3d] hover:bg-[#251a38]/50 transition-colors ${i === filteredBrowsers.length - 1 ? "border-b-0" : ""}`}>
+                        <React.Fragment key={b.id}>
+                        <tr className={`border-b border-[#2a1f3d] hover:bg-[#251a38]/50 transition-colors cursor-pointer ${i === filteredBrowsers.length - 1 && !isExpanded ? "border-b-0" : ""}`}
+                          onClick={() => setExpandedBrowsers(prev => {
+                            const next = new Set(prev);
+                            if (next.has(b.id)) next.delete(b.id); else next.add(b.id);
+                            return next;
+                          })}
+                        >
                           <td className="px-4 py-3">
-                            <div className="font-mono text-[12px] text-slate-200">{b.name}</div>
-                            {b.scenarioName && (
-                              <div className="text-[10px] text-slate-500 mt-0.5 truncate max-w-[140px]">{b.scenarioName}</div>
-                            )}
+                            <div className="flex items-center gap-2">
+                              <Icon name="ChevronRight" size={12} className={`text-slate-600 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
+                              <div>
+                                <div className="font-mono text-[12px] text-slate-200">{b.name}</div>
+                                {b.scenarioName && (
+                                  <div className="text-[10px] text-slate-500 mt-0.5 truncate max-w-[140px]">{b.scenarioName}</div>
+                                )}
+                              </div>
+                            </div>
                           </td>
                           <td className="px-4 py-3">
                             {b.totalSteps > 0 ? (
@@ -1649,7 +1664,7 @@ export default function Index() {
                             </div>
                           </td>
                           <td className="px-4 py-3 font-mono text-[11px] text-slate-500">{b.mem > 0 ? `${b.mem}MB` : "—"}</td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                             <div className="flex gap-1">
                               <button
                                 onClick={() => setBrowserStatus(b.id, "running")}
@@ -1675,6 +1690,26 @@ export default function Index() {
                             </div>
                           </td>
                         </tr>
+                        {isExpanded && (
+                          <tr className="border-b border-[#2a1f3d]">
+                            <td colSpan={7} className="px-0 py-0">
+                              <div className="bg-[#130e1d] border-l-2 border-violet-500/30 mx-4 my-2 rounded">
+                                {browserLogs.length > 0 ? browserLogs.map(l => (
+                                  <div key={l.id} className="flex items-start gap-3 px-3 py-1.5 text-[11px] border-b border-[#1a1028] last:border-b-0">
+                                    <span className="font-mono text-slate-600 shrink-0">{l.time}</span>
+                                    <span className={`shrink-0 font-medium ${l.level === "error" ? "text-red-400" : l.level === "warn" ? "text-amber-400" : "text-slate-500"}`}>
+                                      {l.level.toUpperCase()}
+                                    </span>
+                                    <span className="text-slate-300 break-all">{l.message}</span>
+                                  </div>
+                                )) : (
+                                  <div className="px-3 py-3 text-[11px] text-slate-600 text-center">Пока нет логов</div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                        </React.Fragment>
                       );
                     })}
                   </tbody>
