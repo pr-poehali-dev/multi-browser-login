@@ -1422,7 +1422,7 @@ export default function Index() {
             <img src="https://cdn.poehali.dev/projects/b92a8c65-f081-4684-87a0-bfb308c5c2e4/files/0d735473-25d1-47dd-8cce-17327ef9d26e.jpg" alt="MBA Browser" className="w-7 h-7 rounded" />
             <div>
               <div className="text-[13px] font-semibold text-slate-100 leading-none">MBA Browser</div>
-              <div className="text-[10px] text-slate-500 mt-0.5">v1.0.0</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">v1.5.0</div>
             </div>
           </div>
         </div>
