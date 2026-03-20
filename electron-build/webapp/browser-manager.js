@@ -18,6 +18,27 @@ function init(onStatus, onLog) {
   emitLog = onLog;
 }
 
+// Резолвим путь к Chrome — .app бандл → бинарник внутри
+function resolveChromePath(inputPath) {
+  if (!inputPath) return null;
+  let p = inputPath;
+  if (p.startsWith('~')) {
+    p = path.join(os.homedir(), p.slice(1));
+  }
+  if (os.platform() === 'darwin' && p.endsWith('.app')) {
+    const binary = path.join(p, 'Contents', 'MacOS');
+    if (fs.existsSync(binary)) {
+      const files = fs.readdirSync(binary);
+      if (files.length > 0) {
+        const resolved = path.join(binary, files[0]);
+        if (fs.existsSync(resolved)) return resolved;
+      }
+    }
+  }
+  if (fs.existsSync(p)) return p;
+  return null;
+}
+
 // Путь к Chromium по умолчанию
 function getDefaultChromiumPath() {
   const platform = os.platform();
@@ -198,7 +219,7 @@ async function executeStep(id, page, step, vars = {}) {
 async function launchBrowser(opts = {}) {
   const { url, proxy, account, scenarioName, steps = [], settings = {} } = opts;
 
-  const executablePath = settings.chromiumPath || getDefaultChromiumPath();
+  const executablePath = resolveChromePath(settings.chromiumPath) || getDefaultChromiumPath();
   if (!executablePath) {
     throw new Error('Chrome/Chromium не найден. Укажи путь в Настройках → Путь к Chromium');
   }

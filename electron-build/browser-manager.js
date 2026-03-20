@@ -339,9 +339,28 @@ function getStealthScripts(fingerprint) {
 /**
  * Найти путь к установленному Chrome/Chromium
  */
+function resolveChromePath(inputPath) {
+  if (!inputPath) return null
+  let p = inputPath.trim()
+  if (p.startsWith('~')) p = path.join(os.homedir(), p.slice(1))
+  if (os.platform() === 'darwin' && p.endsWith('.app')) {
+    const binary = path.join(p, 'Contents', 'MacOS')
+    try {
+      const files = fs.readdirSync(binary)
+      if (files.length > 0) {
+        const resolved = path.join(binary, files[0])
+        try { fs.accessSync(resolved); return resolved } catch {}
+      }
+    } catch {}
+  }
+  try { fs.accessSync(p); return p } catch {}
+  return null
+}
+
 function findChromePath(customPath) {
   if (customPath && customPath.trim()) {
-    try { fs.accessSync(customPath.trim()); return customPath.trim() } catch {}
+    const resolved = resolveChromePath(customPath)
+    if (resolved) return resolved
   }
   const candidates = {
     darwin: [

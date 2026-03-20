@@ -127,12 +127,14 @@ ipcMain.handle('browser:clearLogs', () => {
 });
 
 ipcMain.handle('dialog:openFile', async () => {
+  const isMac = process.platform === 'darwin';
   const result = await dialog.showOpenDialog(mainWindow, {
-    title: 'Выбери исполняемый файл Chrome / Chromium',
+    title: isMac ? 'Выбери Chrome / Chromium (.app)' : 'Выбери исполняемый файл Chrome / Chromium',
     properties: ['openFile'],
     filters: process.platform === 'win32'
       ? [{ name: 'Executable', extensions: ['exe'] }]
-      : [{ name: 'All Files', extensions: ['*'] }],
+      : [],
+    message: isMac ? 'Выбери приложение Google Chrome или Chromium' : undefined,
   });
   if (result.canceled || result.filePaths.length === 0) return { ok: false };
   return { ok: true, path: result.filePaths[0] };

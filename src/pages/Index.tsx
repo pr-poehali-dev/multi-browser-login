@@ -1910,11 +1910,12 @@ export default function Index() {
                       />
                     </div>
                     <div className="bg-[#1a1028] border border-[#2f2445] rounded-lg p-4">
-                      <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-2">Путь к Chromium</div>
+                      <div className="text-[11px] font-medium text-slate-500 uppercase tracking-widest mb-2">Путь к Chrome / Chromium</div>
                       <div className="flex gap-2">
                         <input
                           value={settings.chromiumPath}
                           onChange={e => setSettings(s => ({ ...s, chromiumPath: e.target.value }))}
+                          placeholder="/Applications/Google Chrome.app"
                           type="text"
                           className={`flex-1 ${inputCls}`}
                         />
