@@ -6,7 +6,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   pauseBrowser: (id) => ipcRenderer.invoke('browser:pause', id),
   resumeBrowser: (id) => ipcRenderer.invoke('browser:resume', id),
   listBrowsers: () => ipcRenderer.invoke('browser:list'),
-  runScenario: (opts) => ipcRenderer.invoke('browser:runScenario', opts),
+  runScenario: (opts) => ipcRenderer.invoke('scenario:run', opts),
   getLogs: (filter) => ipcRenderer.invoke('browser:getLogs', filter),
   clearLogs: () => ipcRenderer.invoke('browser:clearLogs'),
 

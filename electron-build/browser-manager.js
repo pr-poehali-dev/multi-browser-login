@@ -758,12 +758,34 @@ function clearLogs() {
   logs.splice(0, logs.length)
 }
 
+async function runScenario({ scenario, accounts, settings }) {
+  const results = []
+  for (const account of accounts) {
+    try {
+      const url = account.site || 'about:blank'
+      const result = await launchBrowser({
+        url,
+        proxy: account.proxy || undefined,
+        account: account.login,
+        scenarioName: scenario.name,
+        steps: scenario.steps,
+        settings,
+      })
+      results.push({ ok: true, accountLogin: account.login, data: result })
+    } catch (err) {
+      results.push({ ok: false, accountLogin: account.login, error: err.message })
+    }
+  }
+  return results
+}
+
 module.exports = {
   launchBrowser,
   closeBrowser,
   pauseBrowser,
   resumeBrowser,
   listBrowsers,
+  runScenario,
   getLogs,
   clearLogs,
   emitter,

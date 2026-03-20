@@ -24,4 +24,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('browser:log', (_e, data) => cb(data))
     return () => ipcRenderer.removeAllListeners('browser:log')
   },
+
+  // Диалоги и утилиты
+  openFileDialog: () => ipcRenderer.invoke('dialog:openFile'),
+  detectChrome:   () => ipcRenderer.invoke('browser:detectChrome'),
 })

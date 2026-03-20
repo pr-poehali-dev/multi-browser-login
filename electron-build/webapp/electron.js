@@ -100,7 +100,7 @@ ipcMain.handle('browser:list', () => {
   }
 });
 
-ipcMain.handle('browser:runScenario', async (_e, opts) => {
+ipcMain.handle('scenario:run', async (_e, opts) => {
   try {
     const data = await bm.runScenario(opts);
     return { ok: true, data };
