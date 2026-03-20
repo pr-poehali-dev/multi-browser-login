@@ -499,9 +499,10 @@ async function launchBrowser({ url, proxy, chromePath, headless = false, account
   // Профиль браузера (если включено сохранение cookies)
   let userDataDir
   if (settings && settings.saveCookies && account) {
-    const profilesBase = settings.profilesDir
-      ? settings.profilesDir.replace('~', os.homedir())
-      : path.join(os.homedir(), '.mba-browser', 'profiles')
+    let profilesBase = settings.profilesDir || path.join(os.homedir(), '.mba-browser', 'profiles')
+    if (profilesBase.startsWith('~')) {
+      profilesBase = path.join(os.homedir(), profilesBase.slice(1))
+    }
     userDataDir = path.join(profilesBase, account.replace(/[^a-zA-Z0-9_-]/g, '_'))
     fs.mkdirSync(userDataDir, { recursive: true })
   }

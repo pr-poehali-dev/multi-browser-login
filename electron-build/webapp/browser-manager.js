@@ -204,9 +204,11 @@ async function launchBrowser(opts = {}) {
   }
 
   const id = nextId++;
-  const rawProfilesDir = settings.profilesDir || path.join(os.homedir(), 'MBABrowser', 'profiles');
-  const profilesDir = rawProfilesDir.replace(/^~/, os.homedir());
-  const userDataDir = path.join(profilesDir, `session_${id}`);
+  let rawProfilesDir = settings.profilesDir || path.join(os.homedir(), 'MBABrowser', 'profiles');
+  if (rawProfilesDir.startsWith('~')) {
+    rawProfilesDir = path.join(os.homedir(), rawProfilesDir.slice(1));
+  }
+  const userDataDir = path.join(rawProfilesDir, `session_${id}`);
   fs.mkdirSync(userDataDir, { recursive: true });
 
   const launchArgs = [
