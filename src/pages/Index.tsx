@@ -80,6 +80,7 @@ interface ElectronAPI {
   onBrowserStatus: (cb: (data: { id: number; status?: string; currentStep?: number; totalSteps?: number }) => void) => () => void;
   onLog: (cb: (data: { id: number; time: string; level: string; browser: string; message: string }) => void) => () => void;
   openFileDialog: () => Promise<{ ok: boolean; path?: string }>;
+  detectChrome: () => Promise<{ ok: boolean; path?: string | null }>;
 }
 
 function getElectronAPI(): ElectronAPI | undefined {
@@ -939,6 +940,17 @@ export default function Index() {
   });
   const [chromeCheckStatus, setChromeCheckStatus] = useState<"idle" | "checking" | "ok" | "error">("idle");
   const [chromeCheckMsg, setChromeCheckMsg] = useState("");
+
+  useEffect(() => {
+    if (settings.chromiumPath) return;
+    const api = getElectronAPI();
+    if (!api?.detectChrome) return;
+    api.detectChrome().then(res => {
+      if (res.ok && res.path) {
+        setSettings(s => ({ ...s, chromiumPath: res.path as string }));
+      }
+    });
+  }, []);
 
   // Logs state
   const [logs, setLogs] = useState(mockLogs);

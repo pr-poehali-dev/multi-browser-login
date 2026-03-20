@@ -415,4 +415,5 @@ module.exports = {
   runScenario,
   getLogs,
   clearLogs,
+  getDefaultChromiumPath,
 };

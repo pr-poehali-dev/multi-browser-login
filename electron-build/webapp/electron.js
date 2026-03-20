@@ -126,6 +126,21 @@ ipcMain.handle('browser:clearLogs', () => {
   }
 });
 
+ipcMain.handle('browser:detectChrome', () => {
+  try {
+    const chromePath = bm.getDefaultChromiumPath();
+    if (!chromePath) return { ok: false, path: null };
+    let displayPath = chromePath;
+    if (process.platform === 'darwin') {
+      const appMatch = chromePath.match(/^(.+\.app)\//);
+      if (appMatch) displayPath = appMatch[1];
+    }
+    return { ok: true, path: displayPath };
+  } catch {
+    return { ok: false, path: null };
+  }
+});
+
 ipcMain.handle('dialog:openFile', async () => {
   const isMac = process.platform === 'darwin';
   const result = await dialog.showOpenDialog(mainWindow, {

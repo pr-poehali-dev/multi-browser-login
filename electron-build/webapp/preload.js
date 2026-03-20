@@ -23,4 +23,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   openFileDialog: () => ipcRenderer.invoke('dialog:openFile'),
+  detectChrome: () => ipcRenderer.invoke('browser:detectChrome'),
 });
